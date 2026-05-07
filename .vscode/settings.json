@@ -1,0 +1,123 @@
+{
+  // TeX Live tools — mirrors Overleaf's available compilers
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+    },
+    {
+      "name": "pdflatex-draft",
+      "command": "pdflatex",
+      "args": ["-synctex=1", "-interaction=batchmode", "-draftmode", "-file-line-error", "%DOC%"]
+    },
+    {
+      "name": "latexmk",
+      "command": "latexmk",
+      "args": ["-pdf", "-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+    },
+    {
+      "name": "xelatex",
+      "command": "xelatex",
+      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+    },
+    {
+      "name": "lualatex",
+      "command": "lualatex",
+      "args": ["-synctex=1", "-interaction=nonstopmode", "%DOC%"]
+    },
+    {
+      "name": "bibtex",
+      "command": "bibtex",
+      "args": ["%DOCFILE%"]
+    },
+    {
+      "name": "biber",
+      "command": "biber",
+      "args": ["%DOCFILE%"]
+    }
+  ],
+
+  // Recipes = compile chains, giống Overleaf's compiler options
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (Fast auto-recompile)",
+      "tools": ["latexmk"]
+    },
+    {
+      "name": "pdfLaTeX (Overleaf default)",
+      "tools": ["pdflatex", "pdflatex"]
+    },
+    {
+      "name": "pdfLaTeX Draft (Fast preview)",
+      "tools": ["pdflatex-draft"]
+    },
+    {
+      "name": "pdfLaTeX + BibTeX",
+      "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"]
+    },
+    {
+      "name": "pdfLaTeX + Biber",
+      "tools": ["pdflatex", "biber", "pdflatex", "pdflatex"]
+    },
+    {
+      "name": "XeLaTeX (Unicode / tiếng Việt)",
+      "tools": ["xelatex", "xelatex"]
+    },
+    {
+      "name": "XeLaTeX + Biber",
+      "tools": ["xelatex", "biber", "xelatex", "xelatex"]
+    },
+    {
+      "name": "LuaLaTeX",
+      "tools": ["lualatex", "lualatex"]
+    }
+  ],
+
+  // Default recipe = pdflatex x2 để xuất PDF đầy đủ
+  "latex-workshop.latex.recipe.default": "pdfLaTeX (Overleaf default)",
+
+  // Auto-save sau 1.5 giây dừng gõ -> trigger LaTeX build
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1500,
+
+  // Auto-compile khi save (realtime preview)
+  "latex-workshop.latex.autoBuild.run": "onSave",
+
+  // PDF preview trong tab bên cạnh
+  "latex-workshop.view.pdf.viewer": "tab",
+
+  // SyncTeX: click PDF -> nhảy đến dòng code tương ứng
+  "latex-workshop.synctex.afterBuild.enabled": true,
+
+  // Dùng synctexjs (built-in PDF.js) cho better synctex support
+  "latex-workshop.synctex.synctexjs.enabled": true,
+
+  // Auto-open PDF viewer khi compile xong lần đầu
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.hand": true,
+  "latex-workshop.view.pdf.invert": 0,
+  "latex-workshop.view.pdf.zoom": "auto",
+
+  // Forward search: Ctrl+Alt+J (Tex line -> PDF)
+  "latex-workshop.view.pdf.external.synctex.command": "SumatraPDF",
+  
+  // Auto-recompile khi có thay đổi (không chỉ save)
+  "latex-workshop.latex.watch.files.ignore": [
+    "**/*.aux", "**/*.bbl", "**/*.blg", "**/*.fdb_latexmk",
+    "**/*.fls", "**/*.log", "**/*.out", "**/*.pdf"
+  ],
+
+  // Dọn file build phụ (.aux, .log, ...) sau khi build xong
+  "latex-workshop.latex.autoClean.run": "onBuilt",
+  "latex-workshop.latex.clean.fileTypes": [
+    "*.aux", "*.bbl", "*.blg", "*.idx", "*.ind",
+    "*.lof", "*.lot", "*.out", "*.toc", "*.acn",
+    "*.acr", "*.alg", "*.glg", "*.glo", "*.gls",
+    "*.fls", "*.log", "*.fdb_latexmk", "*.snm", "*.nav"
+  ],
+
+  // Hiện lỗi inline trong editor
+  "latex-workshop.message.error.show": true,
+  "latex-workshop.message.warning.show": true
+}

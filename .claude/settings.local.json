@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(winget show *)",
+      "WebFetch(domain:mirror.ctan.org)",
+      "WebFetch(domain:sg.mirrors.cicku.me)",
+      "WebFetch(domain:ftp.jaist.ac.jp)",
+      "Bash(pdflatex --version)",
+      "Bash(xelatex --version)",
+      "Bash(tlmgr --version)"
+    ]
+  }
+}
