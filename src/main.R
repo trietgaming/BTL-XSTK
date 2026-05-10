@@ -24,6 +24,56 @@ str(raw_data)
 summary(raw_data)
 colSums(is.na(raw_data))
 
+# ==========================================================
+# PHÂN TÍCH HỖ TRỢ: Tỷ lệ dữ liệu khuyết theo 34 thuộc tính
+# Xuất Hình minh họa cho mục 2.2 báo cáo (justify quy trình lọc biến)
+# ==========================================================
+if (!dir.exists("figures")) dir.create("figures")
+
+# Đếm cả NA và chuỗi rỗng / không hợp lệ (vd: "-", "")
+missing_count <- sapply(raw_data, function(col) {
+  if (is.character(col)) {
+    cleaned <- str_trim(col)
+    sum(is.na(col) | cleaned == "" | cleaned == "-")
+  } else {
+    sum(is.na(col))
+  }
+})
+missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
+
+kept_vars <- c("Release_Price", "Max_Power", "Memory", "Memory_Bus",
+               "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type")
+
+missing_df <- data.frame(
+  variable = names(missing_pct),
+  pct = as.numeric(missing_pct),
+  kept = names(missing_pct) %in% kept_vars
+)
+missing_df <- missing_df[order(-missing_df$pct), ]
+
+bar_colors <- with(missing_df,
+  ifelse(kept, "#2c7fb8",
+    ifelse(pct >= 30, "#e34a33", "#bdbdbd")))
+
+png("figures/missing_data_ratio.png", type = "cairo",
+    width = 2400, height = 2400, res = 300)
+par(mar = c(5, 11, 4, 2))
+barplot(rev(missing_df$pct),
+        names.arg = rev(missing_df$variable),
+        horiz = TRUE, las = 1,
+        col = rev(bar_colors),
+        xlim = c(0, 100),
+        xlab = "Ty le du lieu khuyet (%)",
+        main = "Ty le du lieu khuyet cua 34 thuoc tinh (N = 3.406)",
+        cex.names = 0.7, cex.main = 1.05)
+abline(v = 30, col = "red", lty = 2, lwd = 1.5)
+legend("bottomright",
+       legend = c("Bien duoc chon (8)", "Bi loai (thieu >= 30%)", "Bi loai (ly do khac)"),
+       fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
+       cex = 0.85, bty = "n")
+dev.off()
+cat("\n--- Da xuat figures/missing_data_ratio.png ---\n")
+
 # BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU
 
 # Chọn lọc 8 biến chính và đổi tên cho giống mô tả trong lý thuyết
@@ -38,7 +88,6 @@ df <- raw_data %>%
     release_date = Release_Date,
     manufacturer = Manufacturer,
     memory_type = Memory_Type,
-    memory_speed = Memory_Speed
   )
 
 # Xử lý chuỗi, ép kiểu số và gộp nhãn ATI -> AMD
@@ -116,6 +165,45 @@ df_clean <- df_clean %>%
     manufacturer = ifelse(is.na(as.character(manufacturer)) | as.character(manufacturer) == "",
                           get_mode(as.character(manufacturer)), as.character(manufacturer))
   )
+
+# ==========================================================
+# PHÂN TÍCH HỖ TRỢ: Ma trận tương quan giữa các biến số được chọn
+# Xuất Hình minh họa cho mục 2.2 báo cáo (kiểm chứng quan hệ với giá Y)
+# ==========================================================
+numeric_subset <- df_clean %>%
+  select(release_price, tdp, memory_size, memory_bus, core_speed, release_year)
+
+cor_matrix <- cor(numeric_subset, use = "complete.obs")
+display_labels <- c("Gia phat hanh", "TDP", "Dung luong RAM",
+                    "Bang thong bus", "Xung nhip loi", "Nam phat hanh")
+colnames(cor_matrix) <- display_labels
+rownames(cor_matrix) <- display_labels
+
+png("figures/correlation_matrix.png", type = "cairo",
+    width = 2000, height = 1800, res = 300)
+par(mar = c(8, 8, 4, 5))
+
+n_cor <- ncol(cor_matrix)
+img_data <- t(cor_matrix[n_cor:1, ])
+
+image(1:n_cor, 1:n_cor, img_data,
+      col = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
+      breaks = seq(-1, 1, length.out = 101),
+      axes = FALSE, xlab = "", ylab = "",
+      main = "Ma tran tuong quan Pearson giua cac bien so (N = 556)")
+axis(1, at = 1:n_cor, labels = colnames(cor_matrix), las = 2, cex.axis = 0.85)
+axis(2, at = 1:n_cor, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.85)
+
+for (i in 1:n_cor) {
+  for (j in 1:n_cor) {
+    val <- cor_matrix[i, j]
+    text_col <- ifelse(abs(val) > 0.6, "white", "black")
+    text(j, n_cor - i + 1, sprintf("%.2f", val), cex = 0.95, col = text_col)
+  }
+}
+dev.off()
+cat("\n--- Da xuat figures/correlation_matrix.png ---\n")
+
 # BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI
 
 df_clean <- df_clean %>%

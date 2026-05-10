@@ -1,0 +1,73 @@
+\documentclass[17pt]{beamer}
+
+\usepackage[utf8]{vietnam}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphics} % thư viện để hiển thị ảnh
+\usepackage{caption} % thư viện để đặt caption
+\usepackage{booktabs} % thư viện để vẽ table
+\usepackage{hyperref} % thư viện để link tới các chương
+\usepackage{diagbox}
+\usepackage{amsmath,amsxtra,amssymb,latexsym, amscd,amsthm}
+\usepackage{graphicx}
+\usepackage{xstring}
+\usepackage{mathrsfs}
+\usepackage{tikz}
+\usetikzlibrary{calc,intersections}
+\usetikzlibrary{arrows}
+\usepackage{tkz-euclide}
+\usepackage{tkz-tab}
+\usepackage{tabvar}
+\usepackage{circledsteps}
+
+\usepackage{tikz}
+\usetheme{Madrid}
+\usecolortheme{beaver}
+\title[About Beamer] %optional
+{BÁO CÁO BTL XSTK}
+\subtitle{Nhóm}
+\author[Tác giả] % (optional)
+{Nguyễn Văn A\inst{1} \and Lê B\inst{2}}
+
+\institute[HCMUT] % (optional)
+{
+	\inst{1}%
+	Khoa KHMT\\
+	HCMUT 
+	\and
+	\inst{2}%
+	Khoa ĐIỆN\\
+	HCMUT 
+}
+
+\date[NH 24-25] % (optional)
+{Tp HCM, Dec 2024}
+
+% Use a simple TikZ graphic to show where the logo is positioned
+\logo{
+	
+\includegraphics[scale=0.4]{hcmut.png};
+	
+%\begin{tikzpicture}
+		%\filldraw[color=red!50, fill=red!25, very thick](0,0) circle (0.5);
+		%\includegraphics[scale=0.2]{hcmut.png};
+		%\node[draw,color=white] at (0,0) {hcmut.png};
+%\end{tikzpicture}
+}
+\begin{document}
+	\frame{\titlepage}
+	%Highlighting text
+	\begin{frame}
+		\frametitle{Tổng quan báo cáo}
+		
+		Bộ data
+		\alert{Giá GPU} và các....
+		
+		\begin{block}{Remark}
+			Sample text
+		\end{block}
+		
+	\end{frame}
+\end{document}

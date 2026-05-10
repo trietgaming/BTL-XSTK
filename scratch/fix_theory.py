@@ -1,0 +1,34 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+with open('src/main.tex', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+replacements = [
+    # Trim "Lý do chọn mô hình" + "Giới hạn" into shorter text
+    ("\\textbf{L\u00fd do ch\u1ecdn m\u00f4 h\u00ecnh:} Trong b\u1ed1i c\u1ea3nh nghi\u00ean c\u1ee9u n\u00e0y, m\u1ee5c ti\u00eau ch\u00ednh kh\u00f4ng ph\u1ea3i l\u00e0 d\u1ef1 \u0111o\u00e1n gi\u00e1 ngo\u1ea1i m\u1eabu m\u00e0 quan tr\u1ecdng h\u01a1n l\u00e0 hi\u1ec3u c\u1ea5u tr\u00fac \u0111\u1ecbnh gi\u00e1 v\u00e0 l\u01b0\u1ee3ng h\u00f3a t\u00e1c \u0111\u1ed9ng ri\u00eang ph\u1ea7n c\u1ee7a t\u1eebng th\u00f4ng s\u1ed1. H\u1ed3i quy tuy\u1ebfn t\u00ednh b\u1ed9i \u0111\u01b0\u1ee3c \u01b0u ti\u00ean v\u00ec t\u00ednh di\u1ec5n gi\u1ea3i cao (interpretability), m\u1ed7i h\u1ec7 s\u1ed1 h\u1ed3i quy tr\u1ef1c ti\u1ebfp th\u1ec3 hi\u1ec7n m\u1ee9c thay \u0111\u1ed5i v\u1ec1 gi\u00e1 khi m\u1ed9t th\u00f4ng s\u1ed1 thay \u0111\u1ed5i \\textbf{m\u1ed9t \u0111\u1ed9 l\u1ec7ch chu\u1ea9n (1~SD)} (sau khi \u0111\u00e3 ki\u1ec3m so\u00e1t c\u00e1c y\u1ebfu t\u1ed1 kh\u00e1c). \u0110i\u1ec1u n\u00e0y ph\u00f9 h\u1ee3p v\u1edbi nhu c\u1ea7u c\u1ee7a nh\u00e0 s\u1ea3n xu\u1ea5t v\u00e0 nh\u00e0 ph\u00e2n t\u00edch mu\u1ed1n bi\u1ebft ch\u00ednh x\u00e1c y\u1ebfu t\u1ed1 k\u1ef9 thu\u1eadt n\u00e0o \u0111\u00f3ng g\u00f3p nhi\u1ec1u nh\u1ea5t v\u00e0o gi\u00e1 th\u00e0nh. C\u00e1c m\u00f4 h\u00ecnh machine learning ph\u1ee9c t\u1ea1p (nh\u01b0 random forest, neural network) tuy c\u00f3 th\u1ec3 \u0111\u1ea1t \u0111\u1ed9 ph\u00f9 h\u1ee3p d\u1eef li\u1ec7u (fit) cao h\u01a1n nh\u01b0ng l\u1ea1i kh\u00f3 gi\u1ea3i th\u00edch \u0111\u01b0\u1ee3c c\u01a1 ch\u1ebf t\u00e1c \u0111\u1ed9ng, do \u0111\u00f3 kh\u00f4ng \u0111\u01b0\u1ee3c l\u1ef1a ch\u1ecdn trong ph\u1ea1m vi b\u00e0i b\u00e1o c\u00e1o n\u00e0y.\n\n\\textbf{Gi\u1edbi h\u1ea1n c\u1ee7a m\u00f4 h\u00ecnh:} M\u1eb7c d\u00f9 h\u1ed3i quy tuy\u1ebfn t\u00ednh cung c\u1ea5p c\u00e1ch di\u1ec5n gi\u1ea3i tr\u1ef1c quan, nh\u01b0ng gi\u1ea3 \u0111\u1ecbnh tuy\u1ebfn t\u00ednh c\u00f3 th\u1ec3 kh\u00f4ng n\u1eafm b\u1eaft \u0111\u01b0\u1ee3c c\u00e1c quan h\u1ec7 phi tuy\u1ebfn (v\u00ed d\u1ee5: hi\u1ec7u su\u1ea5t t\u0103ng phi tuy\u1ebfn theo b\u0103ng th\u00f4ng b\u1ed9 nh\u1edb) ho\u1eb7c t\u01b0\u01a1ng t\u00e1c gi\u1eefa c\u00e1c bi\u1ebfn (v\u00ed d\u1ee5: t\u00e1c \u0111\u1ed9ng c\u1ee7a TDP l\u00ean gi\u00e1 c\u00f3 th\u1ec3 ph\u1ee5 thu\u1ed9c v\u00e0o h\u00e3ng s\u1ea3n xu\u1ea5t). Vi\u1ec7c ki\u1ec3m tra hi\u1ec7u \u1ee9ng phi tuy\u1ebfn s\u00e2u h\u01a1n (nh\u01b0 ki\u1ec3m \u0111\u1ecbnh Ramsey RESET) \u0111\u01b0\u1ee3c \u0111\u1ec1 xu\u1ea5t nh\u01b0 m\u1ed9t h\u01b0\u1edbng m\u1edf r\u1ed9ng cho nghi\u00ean c\u1ee9u ti\u1ebfp theo.",
+     "\\textbf{L\u00fd do ch\u1ecdn m\u00f4 h\u00ecnh:} H\u1ed3i quy tuy\u1ebfn t\u00ednh b\u1ed9i \u0111\u01b0\u1ee3c \u01b0u ti\u00ean v\u00ec t\u00ednh di\u1ec5n gi\u1ea3i cao --- m\u1ed7i h\u1ec7 s\u1ed1 tr\u1ef1c ti\u1ebfp th\u1ec3 hi\u1ec7n m\u1ee9c thay \u0111\u1ed5i gi\u00e1 khi th\u00f4ng s\u1ed1 thay \u0111\u1ed5i 1~SD. Gi\u1ea3 \u0111\u1ecbnh tuy\u1ebfn t\u00ednh c\u00f3 th\u1ec3 b\u1ecf s\u00f3t quan h\u1ec7 phi tuy\u1ebfn; ki\u1ec3m \u0111\u1ecbnh Ramsey RESET \u0111\u01b0\u1ee3c \u0111\u1ec1 xu\u1ea5t cho nghi\u00ean c\u1ee9u ti\u1ebfp theo."),
+
+    # Trim ANOVA theory section
+    ("\\textbf{T\u1eeb g\u00f3c \u0111\u1ed9 kinh t\u1ebf h\u1ecdc:} N\u1ebfu k\u1ebft qu\u1ea3 cho th\u1ea5y s\u1ef1 kh\u00e1c bi\u1ec7t c\u00f3 \u00fd ngh\u0129a gi\u1eefa hai h\u00e3ng, \u0111\u00f3 l\u00e0 minh ch\u1ee9ng th\u1ed1ng k\u00ea cho chi\u1ebfn l\u01b0\u1ee3c \u0111\u1ecbnh gi\u00e1 th\u01b0\u01a1ng hi\u1ec7u (v\u00ed d\u1ee5: x\u00e1c nh\u1eadn gi\u1ea3 thuy\u1ebft NVIDIA \u00e1p d\u1ee5ng m\u1ee9c gi\u00e1 trung b\u00ecnh cao h\u01a1n AMD). \u0110i\u1ec1u n\u00e0y cung c\u1ea5p insight quan tr\u1ecdng cho c\u1ea3 ng\u01b0\u1eddi ti\u00eau d\u00f9ng v\u00e0 nh\u00e0 \u0111\u1ecbnh gi\u00e1.\n\n\\textbf{Ki\u1ec3m \u0111\u1ecbnh ti\u1ec1n \u0111i\u1ec1u ki\u1ec7n:} Do c\u1ee1 m\u1eabu l\u1edbn (NVIDIA $n=284$, AMD $n=272$), \u0111i\u1ec1u ki\u1ec7n ph\u00e2n ph\u1ed1i chu\u1ea9n n\u1ed9i nh\u00f3m \u0111\u01b0\u1ee3c \u0111\u1ea3m b\u1ea3o m\u1ed9t c\u00e1ch m\u1ea1nh m\u1ebd theo \u0110\u1ecbnh l\u00fd Gi\u1edbi h\u1ea1n Trung t\u00e2m (CLT). Nh\u00f3m ti\u1ebfn h\u00e0nh ki\u1ec3m tra t\u00ednh \u0111\u1ed3ng nh\u1ea5t c\u1ee7a ph\u01b0\u01a1ng sai b\u1eb1ng Levene's test. Do \u0111\u1eb7c th\u00f9 ph\u00e2n kh\u00fac s\u1ea3n ph\u1ea9m c\u1ee7a hai h\u00e3ng kh\u00e1c nhau, ph\u01b0\u01a1ng sai gi\u00e1 d\u1ef1 ki\u1ebfn s\u1ebd kh\u00f4ng \u0111\u1ed3ng nh\u1ea5t.\n\n\\textbf{K\u1ef9 thu\u1eadt tri\u1ec3n khai:}",
+     "\\textbf{Ti\u1ec1n \u0111i\u1ec1u ki\u1ec7n:} C\u1ee1 m\u1eabu l\u1edbn (NVIDIA $n=284$, AMD $n=272$) \u0111\u1ea3m b\u1ea3o CLT. Levene's test ki\u1ec3m tra \u0111\u1ed3ng nh\u1ea5t ph\u01b0\u01a1ng sai.\n\n\\textbf{K\u1ef9 thu\u1eadt:}"),
+
+    # Shorten the VIF bullet point in model evaluation
+    ("\\textbf{\u0110a c\u1ed9ng tuy\u1ebfn} \u0111\u01b0\u1ee3c \u0111\u00e1nh gi\u00e1 b\u1eb1ng ch\u1ec9 s\u1ed1 VIF. Trong th\u1ef1c h\u00e0nh th\u1ed1ng k\u00ea kh\u1eaft khe, VIF $> 5$ \u0111\u00e3 b\u1eaft \u0111\u1ea7u cho th\u1ea5y c\u00e1c bi\u1ebfn \u0111\u1ed9c l\u1eadp c\u00f3 t\u01b0\u01a1ng quan qu\u00e1 ch\u1eb7t ch\u1ebd, g\u00e2y nhi\u1ec5u v\u00e0 l\u00e0m gi\u1ea3m \u0111\u1ed9 ch\u00ednh x\u00e1c c\u1ee7a \u01b0\u1edbc l\u01b0\u1ee3ng h\u1ec7 s\u1ed1. D\u1ef1a tr\u00ean ti\u00eau chu\u1ea9n n\u00e0y k\u1ebft h\u1ee3p v\u1edbi nguy\u00ean t\u1eafc ti\u1ebft ki\u1ec7m m\u00f4 h\u00ecnh (Occam's Razor), nh\u00f3m ch\u1ee7 \u0111\u1ed9ng lo\u1ea1i b\u1ecf bi\u1ebfn kh\u00f4ng \u0111\u1ea1t y\u00eau c\u1ea7u (c\u1ee5 th\u1ec3 l\u00e0 bi\u1ebfn \\texttt{memory\\_type} v\u1edbi VIF = 8.12) \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u00ednh \u0111\u1ed9c l\u1eadp, t\u00ednh v\u1eefng (robustness) v\u00e0 \u0111\u1ed9 tin c\u1eady t\u1ed1i \u0111a cho c\u00e1c h\u1ec7 s\u1ed1 h\u1ed3i quy c\u00f2n l\u1ea1i.",
+     "\\textbf{\u0110a c\u1ed9ng tuy\u1ebfn} \u0111\u01b0\u1ee3c \u0111\u00e1nh gi\u00e1 b\u1eb1ng VIF (ng\u01b0\u1ee1ng $< 5$). Bi\u1ebfn \\texttt{memory\\_type} (VIF $= 8.12$) b\u1ecb lo\u1ea1i \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u00ednh v\u1eefng c\u1ee7a m\u00f4 h\u00ecnh."),
+]
+
+for i, (old, new) in enumerate(replacements):
+    found = False
+    for nl_to, label in [('\n', 'LF'), ('\r\n', 'CRLF')]:
+        test_old = old.replace('\n', nl_to)
+        if test_old in content:
+            content = content.replace(test_old, new.replace('\n', nl_to))
+            print(f"Replaced #{i+1} ({label})")
+            found = True
+            break
+    if not found:
+        print(f"NOT FOUND #{i+1}")
+
+with open('src/main.tex', 'w', encoding='utf-8') as f:
+    f.write(content)
