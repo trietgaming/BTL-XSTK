@@ -1,0 +1,10 @@
+# LaTeX build artifacts — all redirected to build/
+build/
+
+# Legacy patterns (root-level leftovers)
+main.aux
+main.fdb_latexmk
+main.fls
+main.log
+main.synctex.gz
+pdflatex*.fls

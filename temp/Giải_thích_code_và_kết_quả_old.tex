@@ -1,0 +1,147 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf-8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyhdr}
+
+% Cấu hình R code
+\lstset{
+    language=R,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breakatwhitespace=false,
+    tabsize=2,
+    captionpos=b,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Giải thích Code và Kết quả}
+\cfoot{\thepage}
+
+\title{Giải thích Code và Kết quả}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{BƯỚC 1: TẢI VÀ KHẢO SÁT SƠ BỘ DỮ LIỆU}
+
+\textbf{read.csv(..., stringsAsFactors = FALSE)}: Lệnh này giúp R đọc file CSV nhưng giữ nguyên các cột văn bản dưới dạng chuỗi (character) thay vì tự động chuyển thành nhóm (Factor).
+
+\textbf{str(raw\_data)}: Hiển thị cấu trúc của 3406 dòng và 34 cột.
+
+\textbf{colSums(is.na(raw\_data))}: Đây là lệnh cực kỳ quan trọng để đếm số giá trị khuyết (NA). Nó cung cấp bằng chứng thép cho việc tại sao chúng ta phải xử lý dữ liệu ở các bước sau.
+
+Kết quả trên console được hiển thị để kiểm tra số lượng giá trị khuyết.
+
+\section{BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU}
+
+\subsection{Gộp ATI vào AMD}
+Sử dụng \textbf{ifelse} để sát nhập các dòng của hãng ATI vào AMD vì thực tế AMD đã mua lại ATI, giúp tập hợp dữ liệu hãng sản xuất một cách nhất quán.
+
+\subsection{Trích xuất số liệu}
+\textbf{str\_extract(..., \texttt{"\textbackslash\textbackslash d+\textbackslash\textbackslash.?\textbackslash\textbackslash d*"})}: Lọc lấy con số từ văn bản. Ví dụ: Từ chuỗi ``738 MHz'', R sẽ trích xuất đúng số ``738'' và hàm \textbf{as.numeric} sẽ biến nó thành số thực để tính toán.
+
+\subsection{Xử lý ngày tháng}
+\textbf{as.Date} \& \textbf{format}: Chuyển chuỗi ``01-Mar-2009'' sang định dạng ngày chuẩn, sau đó chỉ lấy đúng 4 chữ số của năm (release\_year). Theo lý thuyết, năm phát hành là yếu tố then chốt phản ánh xu hướng công nghệ theo thời gian.
+
+Kết quả kiểm tra cấu trúc qua lệnh \textbf{str(df)} cho thấy quy trình ép kiểu tại Bước 2 đã hoàn tất thành công.
+
+\section{BƯỚC 3: XỬ LÝ NGOẠI LỆ}
+
+\begin{itemize}
+    \item \textbf{raw\_vec <- na.omit(raw\_vec)}: Loại bỏ tất cả các giá trị khuyết (NA) khỏi dữ liệu thô để việc tính toán phân vị không bị lỗi.
+    
+    \item \textbf{q1 <- quantile(raw\_vec, 0.25)}: Tìm giá trị tại vị trí 25\% của dữ liệu (Tứ phân vị thứ nhất).
+    
+    \item \textbf{q3 <- quantile(raw\_vec, 0.75)}: Tìm giá trị tại vị trí 75\% của dữ liệu (Tứ phân vị thứ ba).
+    
+    \item \textbf{iqr <- q3 - q1}: Tính khoảng cách giữa Q3 và Q1. Đây là độ trải rộng của 50\% dữ liệu nằm ở giữa.
+    
+    \item \textbf{upper\_bound <- q3 + 1.5 * iqr}: Xác định ranh giới trên. Theo lý thuyết thống kê của Tukey, bất kỳ giá trị nào lớn hơn ngưỡng này đều được coi là ngoại lệ (cực trị phía trên).
+    
+    \item \textbf{return(sum(clean\_vec > upper\_bound, na.rm = TRUE))}: Kiểm tra xem trong tập dữ liệu đã làm sạch (clean\_vec), có bao nhiêu giá trị vượt qua ngưỡng trên đã tính và trả về tổng số lượng đó.
+\end{itemize}
+
+Thống kê ngoại lệ được hiển thị trên console để kiểm tra.
+
+\section{BƯỚC 4: XỬ LÝ GIÁ TRỊ KHUYẾT}
+
+\subsection{Lọc điều kiện (Filter)}
+
+\begin{itemize}
+    \item Loại bỏ các dòng thiếu release\_price vì đây là biến mục tiêu Y, không thể tự ý điền vào được.
+    
+    \item Loại bỏ ``Intel'' vì toàn bộ GPU Intel trong tập dữ liệu thô đều không có giá, giữ lại sẽ gây nhiễu.
+\end{itemize}
+
+\subsection{Điền khuyết bằng Trung vị (Median)}
+Áp dụng cho các biến số (tdp, core\_speed,...). Trung vị được ưu tiên vì nó không bị kéo lệch bởi các card đồ họa siêu đắt tiền (ngoại lệ đã tìm thấy ở Bước 3).
+
+\subsection{Điền khuyết bằng yếu vị (Mode)}
+Áp dụng cho các biến chữ (memory\_type, manufacturer) bằng cách lấy giá trị xuất hiện nhiều nhất.
+
+Sau quy trình điền khuyết theo phương pháp Median và Mode, bộ dữ liệu đã hoàn toàn sạch (0\% NA), sẵn sàng cho việc xây dựng mô hình.
+
+\section{BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI}
+
+\textbf{as.factor()}: Hàm này chuyển đổi một cột dạng văn bản (character) thành dạng Yếu tố (Factor).
+
+Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor, giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành.
+
+\section{BƯỚC 6: CHUẨN HÓA DỮ LIỆU (Z-SCORE NORMALIZATION)}
+
+Hàm \textbf{scale} mặc định trả về một ma trận, thêm \textbf{[,1]} để ép nó về dạng cột (vector) giúp dữ liệu đồng nhất.
+
+\textbf{Lệnh chạy}: \texttt{print(stats\_check)}
+
+Kết quả trung bình bằng \textbf{0} và độ lệch chuẩn bằng \textbf{1} là bằng chứng đanh thép chứng minh dữ liệu đã được chuẩn hóa thành công.
+
+\section{BƯỚC 7.1: MÔ HÌNH HỒI QUY TUYẾN TÍNH BỘI}
+
+\subsection{Kiểm định đa cộng tuyến (VIF)}
+
+\textbf{memory\_type} có VIF khoảng \textbf{8.12}. Đây là bằng chứng để nhóm loại bỏ biến này ra khỏi mô hình chính thức nhằm đảm bảo tính khách quan.
+
+\subsection{Xây dựng mô hình chính thức (Log-Linear)}
+
+Nhóm sử dụng hàm \textbf{log(release\_price)} thay vì giá gốc. Việc lấy logarit giúp nén các giá trị cực trị (card đồ họa siêu đắt) và giúp sai số của mô hình tuân theo phân phối chuẩn tốt hơn.
+
+Kết quả được hiển thị trên console.
+
+\subsection{Kiểm định giả định mô hình}
+
+\begin{itemize}
+    \item \textbf{Breusch-Pagan}: Kiểm tra xem sai số của mô hình có ổn định không.
+    
+    \item \textbf{Shapiro-Wilk}: Kiểm tra xem phần dư có phân phối chuẩn không.
+\end{itemize}
+
+Kết quả được hiển thị trên console.
+
+\subsection{Vẽ biểu đồ so sánh giá thực tế với giá dự đoán}
+
+Biểu đồ so sánh giá thực tế với giá dự đoán được vẽ để trực quan hóa hiệu suất của mô hình.
+
+\section{BƯỚC 7.2: PHÂN TÍCH PHƯƠNG SAI}
+
+Kiểm tra xem độ phân tán (biến thiên) của giá GPU thuộc hãng NVIDIA có bằng với độ phân tán của giá GPU hãng AMD hay không.
+
+\textbf{oneway.test(...)}: Hàm thực hiện phân tích phương sai một yếu tố.
+
+\textbf{var.equal = FALSE}: Đây là tham số quan trọng nhất. Nó ra lệnh cho R thực hiện hiệu chỉnh Welch nhằm xử lý tình trạng phương sai không đồng nhất đã phát hiện ở bước trên.
+
+Kết quả chạy trên console được hiển thị để kiểm tra.
+
+\end{document}

@@ -1,0 +1,83 @@
+BƯỚC 1: TẢI VÀ KHẢO SÁT SƠ BỘ DỮ LIỆU
+
+read.csv(..., stringsAsFactors = FALSE): Lệnh này giúp R đọc file CSV nhưng giữ nguyên các cột văn bản dưới dạng chuỗi (character) thay vì tự động chuyển thành nhóm (Factor).
+str(raw_data): Hiển thị cấu trúc của 3406 dòng và 34 cột.
+colSums(is.na(raw_data)): Đây là lệnh cực kỳ quan trọng để đếm số giá trị khuyết (NA). Nó cung cấp bằng chứng thép cho việc tại sao chúng ta phải xử lý dữ liệu ở các bước sau
+Kết quả trên console: 
+
+BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU
+
+Gộp ATI vào AMD: Sử dụng ifelse để sát nhập các dòng của hãng ATI vào AMD vì thực tế AMD đã mua lại ATI, giúp tập hợp dữ liệu hãng sản xuất một cách nhất quán. str_extract(..., "\\d+\\.?\\d*"): Lọc lấy con số từ văn bản. Ví dụ: Từ chuỗi "738 MHz", R sẽ trích xuất đúng số "738" và hàm as.numeric sẽ biến nó thành số thực để tính toán. 
+as.Date & format: Chuyển chuỗi "01-Mar-2009" sang định dạng ngày chuẩn, sau đó chỉ lấy đúng 4 chữ số của năm (release_year). Theo lý thuyết, năm phát hành là yếu tố then chốt phản ánh xu hướng công nghệ theo thời gian.
+Kết quả kiểm tra cấu trúc qua lệnh str(df) cho thấy quy trình ép kiểu tại Bước 2 đã hoàn tất thành công.
+
+BƯỚC 3: XỬ LÝ NGOẠI LỆ 
+
+raw_vec <- na.omit(raw_vec): Loại bỏ tất cả các giá trị khuyết (NA) khỏi dữ liệu thô để việc tính toán phân vị không bị lỗi.
+q1 <- quantile(raw_vec, 0.25): Tìm giá trị tại vị trí 25% của dữ liệu (Tứ phân vị thứ nhất).
+q3 <- quantile(raw_vec, 0.75): Tìm giá trị tại vị trí 75% của dữ liệu (Tứ phân vị thứ ba).
+iqr <- q3 - q1: Tính khoảng cách giữa Q3 và Q1. Đây là độ trải rộng của 50% dữ liệu nằm ở giữa.
+upper_bound <- q3 + 1.5 * iqr: Xác định ranh giới trên. Theo lý thuyết thống kê của Tukey, bất kỳ giá trị nào lớn hơn ngưỡng này đều được coi là ngoại lệ (cực trị phía trên).
+return(sum(clean_vec > upper_bound, na.rm = TRUE)): Kiểm tra xem trong tập dữ liệu đã làm sạch (clean_vec), có bao nhiêu giá trị vượt qua ngưỡng trên đã tính và trả về tổng số lượng đó.
+
+Thống kê ngoại lệ trên console: 
+
+BƯỚC 4: XỬ LÝ GIÁ TRỊ KHUYẾT
+
+ Lọc điều kiện (Filter):
+ - Loại bỏ các dòng thiếu release_price vì đây là biến mục tiêu Y, không thể tự ý điền vào được. 
+ - Loại bỏ "Intel" vì toàn bộ GPU Intel trong tập dữ liệu thô đều không có giá, giữ lại sẽ gây nhiễu. 
+ Điền khuyết bằng Trung vị (Median): Áp dụng cho các biến số (tdp, core_speed...). Trung vị được ưu tiên vì nó không bị kéo lệch bởi các card đồ họa siêu đắt tiền (ngoại lệ đã tìm thấy ở Bước 3). 
+ Điền khuyết bằng yếu vị (Mode): Áp dụng cho các biến chữ (memory_type, manufacturer) bằng cách lấy giá trị xuất hiện nhiều nhất. 
+
+Sau quy trình điền khuyết theo phương pháp Median và Mode, bộ dữ liệu đã hoàn toàn sạch (0% NA), sẵn sàng cho việc xây dựng mô hình
+
+
+BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI
+as.factor(): Hàm này chuyển đổi một cột dạng văn bản (character) thành dạng Yếu tố (Factor)
+Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor, giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành
+
+BƯỚC 6: CHUẨN HÓA DỮ LIỆU (Z-SCORE NORMALIZATION)
+
+Hàm scale mặc định trả về một ma trận, thêm [,1] để ép nó về dạng cột (vector) giúp dữ liệu đồng nhất.|
+Lệnh chạy: print(stats_check)
+
+Kết quả trung bình bằng 0 và độ lệch chuẩn bằng 1 là bằng chứng đanh thép chứng minh dữ liệu đã được chuẩn hóa thành công.
+
+
+BƯỚC 7.1: MÔ HÌNH HỒI QUY TUYẾN TÍNH BỘI
+
+7.1.1Kiểm định đa cộng tuyến (VIF)
+
+
+
+
+memory_type có VIF khoảng 8.12. Đây là bằng chứng để nhóm loại bỏ biến này ra khỏi mô hình chính thức nhằm đảm bảo tính khách quan.
+7.1.2Xây dựng mô hình chính thức (Log-Linear)
+
+Nhóm sử dụng hàm log(release_price) thay vì giá gốc. Việc lấy logarit giúp nén các giá trị cực trị (card đồ họa siêu đắt) và giúp sai số của mô hình tuân theo phân phối chuẩn tốt hơn.
+
+Kết quả trên console:
+
+
+ 7.1.3Kiểm định giả định mô hình
+
+  Breusch-Pagan: Kiểm tra xem sai số của mô hình có ổn định không. 
+ Shapiro-Wilk: Kiểm tra xem phần dư có phân phối chuẩn không. 
+Kết quả trên console:
+
+
+7.1.4: Vẽ biểu đồ so sánh giá thực tế với giá dự đoán
+
+Biểu đồ so sánh giá thực tế với giá dự đoán
+
+7.2. PHÂN TÍCH PHƯƠNG SAI
+
+
+Kiểm tra xem độ phân tán (biến thiên) của giá GPU thuộc hãng NVIDIA có bằng với độ phân tán của giá GPU hãng AMD hay không.
+
+oneway.test(...): Hàm thực hiện phân tích phương sai một yếu tố.
+var.equal = FALSE: Đây là tham số quan trọng nhất. Nó ra lệnh cho R thực hiện hiệu chỉnh Welch nhằm xử lý tình trạng phương sai không đồng nhất đã phát hiện ở bước trên.
+Kết quả chạy trên console: 
+
+

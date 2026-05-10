@@ -1,0 +1,389 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\begin{document}
+
+\section*{BƯỚC 1: TẢI VÀ KHẢO SÁT SƠ BỘ DỮ LIỆU}
+
+\begin{lstlisting}[language=R]
+# Đọc file CSV
+raw_data <- read.csv("All_GPUs.csv", stringsAsFactors = FALSE)
+
+# Kiểm tra dữ liệu
+str(raw_data)
+\end{lstlisting}
+
+\textbf{read.csv(..., stringsAsFactors = FALSE)}: Lệnh này giúp R đọc file CSV nhưng giữ nguyên các cột văn bản dưới dạng chuỗi (character) thay vì tự động chuyển thành nhóm (Factor).
+
+\textbf{str(raw_data)}: Hiển thị cấu trúc của 3406 dòng và 34 cột.
+
+\textbf{colSums(is.na(raw_data))}: Đây là lệnh cực kỳ quan trọng để đếm số giá trị khuyết (NA). Nó cung cấp bằng chứng thép cho việc tại sao chúng ta phải xử lý dữ liệu ở các bước sau.
+
+Kết quả trên console:
+\begin{lstlisting}[language=R]
+> print(colSums(is.na(raw_data)))
+Architecture    Best_Resolution               Boost_Clock 
+           0               3406                      2823 
+... (đã rút gọn) ...
+        Name        Release_Date             Release_Price 
+           0                   0                      2850 
+\end{lstlisting}
+
+\section*{BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU}
+
+\begin{lstlisting}[language=R]
+df <- raw_data %>%
+  select(Manufacturer, Memory_Speed, Memory_Type, Release_Date, Release_Price, 
+         TDP, Memory, Memory_Bus, Core_Speed) %>%
+  rename(
+    manufacturer = Manufacturer,
+    memory_type = Memory_Type,
+    release_price = Release_Price,
+    tdp = tdp,
+    memory_size = Memory,
+    memory_bus = Memory_Bus,
+    core_speed = Core_Speed
+  ) %>%
+  mutate(
+    # Gộp ATI vào AMD
+    manufacturer = ifelse(manufacturer == "ATI", "AMD", manufacturer),
+    # Rút trích số liệu
+    tdp = as.numeric(str_extract(tdp, "\\d+\\.?\\d*")),
+    memory_size = as.numeric(str_extract(memory_size, "\\d+\\.?\\d*")),
+    memory_bus = as.numeric(str_extract(memory_bus, "\\d+\\.?\\d*")),
+    core_speed = as.numeric(str_extract(core_speed, "\\d+\\.?\\d*")),
+    release_price = as.numeric(str_extract(release_price, "\\d+\\.?\\d*")),
+    # Lấy năm từ ngày phát hành
+    release_year = as.numeric(format(as.Date(Release_Date, format="%d-%b-%Y"), "%Y"))
+  ) %>%
+  select(-Release_Date) # Xóa cột gốc
+\end{lstlisting}
+
+\textbf{Gộp ATI vào AMD}: Sử dụng ifelse để sát nhập các dòng của hãng ATI vào AMD vì thực tế AMD đã mua lại ATI, giúp tập hợp dữ liệu hãng sản xuất một cách nhất quán. 
+
+\textbf{str\_extract(..., "\textbackslash{}\textbackslash{}d+\textbackslash{}\textbackslash{}.?\textbackslash{}\textbackslash{}d*")}: Lọc lấy con số từ văn bản. Ví dụ: Từ chuỗi "738 MHz", R sẽ trích xuất đúng số "738" và hàm as.numeric sẽ biến nó thành số thực để tính toán. 
+
+\textbf{as.Date \& format}: Chuyển chuỗi "01-Mar-2009" sang định dạng ngày chuẩn, sau đó chỉ lấy đúng 4 chữ số của năm (release\_year). Theo lý thuyết, năm phát hành là yếu tố then chốt phản ánh xu hướng công nghệ theo thời gian.
+
+Kết quả kiểm tra cấu trúc qua lệnh \texttt{str(df)} cho thấy quy trình ép kiểu tại Bước 2 đã hoàn tất thành công.
+
+\begin{lstlisting}[language=R]
+> str(df)
+'data.frame':   3406 obs. of  8 variables:
+ $ manufacturer : chr  "Nvidia" "AMD" "AMD" "AMD" ...
+ $ memory_type  : chr  "GDDR5" "HBM2" "GDDR5" "GDDR5" ...
+ $ release_price: num  NA NA NA NA NA NA NA NA NA NA ...
+ $ tdp          : num  250 295 150 150 150 150 225 150 150 150 ...
+ $ memory_size  : num  24576 8192 8192 8192 8192 ...
+ $ memory_bus   : num  384 2048 256 256 256 256 256 256 256 256 ...
+ $ core_speed   : num  1395 1243 1257 1168 1206 ...
+ $ release_year : num  2018 2017 2017 2017 2017 ...
+\end{lstlisting}
+
+\section*{BƯỚC 3: XỬ LÝ NGOẠI LỆ}
+
+\begin{lstlisting}[language=R]
+count_outliers_upper <- function(raw_vec, clean_vec) {
+  raw_vec <- na.omit(raw_vec)
+  q1 <- quantile(raw_vec, 0.25)
+  q3 <- quantile(raw_vec, 0.75)
+  iqr <- q3 - q1
+  upper_bound <- q3 + 1.5 * iqr
+  return(sum(clean_vec > upper_bound, na.rm = TRUE))
+}
+
+# Lặp qua các biến số
+outlier_stats <- data.frame(
+  Variable = c("TDP", "Core Speed", "Memory Size", "Memory Bus", "Release Price"),
+  Outliers_Removed = c(
+    count_outliers_upper(df$tdp, df_clean$tdp),
+    count_outliers_upper(df$core_speed, df_clean$core_speed),
+    count_outliers_upper(df$memory_size, df_clean$memory_size),
+    count_outliers_upper(df$memory_bus, df_clean$memory_bus),
+    count_outliers_upper(df$release_price, df_clean$release_price)
+  )
+)
+print(outlier_stats)
+\end{lstlisting}
+
+\textbf{raw\_vec <- na.omit(raw\_vec)}: Loại bỏ tất cả các giá trị khuyết (NA) khỏi dữ liệu thô để việc tính toán phân vị không bị lỗi.
+
+\textbf{q1 <- quantile(raw\_vec, 0.25)}: Tìm giá trị tại vị trí 25\% của dữ liệu (Tứ phân vị thứ nhất).
+
+\textbf{q3 <- quantile(raw\_vec, 0.75)}: Tìm giá trị tại vị trí 75\% của dữ liệu (Tứ phân vị thứ ba).
+
+\textbf{iqr <- q3 - q1}: Tính khoảng cách giữa Q3 và Q1. Đây là độ trải rộng của 50\% dữ liệu nằm ở giữa.
+
+\textbf{upper\_bound <- q3 + 1.5 * iqr}: Xác định ranh giới trên. Theo lý thuyết thống kê của Tukey, bất kỳ giá trị nào lớn hơn ngưỡng này đều được coi là ngoại lệ (cực trị phía trên).
+
+\textbf{return(sum(clean\_vec > upper\_bound, na.rm = TRUE))}: Kiểm tra xem trong tập dữ liệu đã làm sạch (clean\_vec), có bao nhiêu giá trị vượt qua ngưỡng trên đã tính và trả về tổng số lượng đó.
+
+Thống kê ngoại lệ trên console: 
+\begin{lstlisting}[language=R]
+> print(outlier_stats)
+       Variable Outliers_Removed
+1           TDP                0
+2    Core Speed                0
+3   Memory Size                0
+4    Memory Bus                0
+5 Release Price                0
+\end{lstlisting}
+
+\section*{BƯỚC 4: XỬ LÝ GIÁ TRỊ KHUYẾT}
+
+\begin{lstlisting}[language=R]
+> df_clean <- df_clean %>%
++   mutate(
++     # Điền NA bằng Median cho biến số liên tục
++     tdp = ifelse(is.na(tdp), median(tdp, na.rm = TRUE), tdp),
++     memory_size = ifelse(is.na(memory_size), median(memory_size, na.rm = TRUE), memory_size),
++     memory_bus = ifelse(is.na(memory_bus), median(memory_bus, na.rm = TRUE), memory_bus),
++     core_speed = ifelse(is.na(core_speed), median(core_speed, na.rm = TRUE), core_speed),
++     release_year = ifelse(is.na(release_year), median(release_year, na.rm = TRUE), release_year),
++     
++     # Điền NA bằng Mode cho biến phân loại
++     memory_type = ifelse(is.na(memory_type) | memory_type == "", get_mode(memory_type), memory_type),
++     manufacturer = ifelse(is.na(manufacturer) | manufacturer == "", get_mode(manufacturer), manufacturer)
++   )
+\end{lstlisting}
+
+\textbf{Lọc điều kiện (Filter)}:
+\begin{itemize}
+    \item Loại bỏ các dòng thiếu \texttt{release\_price} vì đây là biến mục tiêu Y, không thể tự ý điền vào được. 
+    \item Loại bỏ "Intel" vì toàn bộ GPU Intel trong tập dữ liệu thô đều không có giá, giữ lại sẽ gây nhiễu.
+\end{itemize}
+
+\textbf{Điền khuyết bằng Trung vị (Median)}: Áp dụng cho các biến số (tdp, core\_speed...). Trung vị được ưu tiên vì nó không bị kéo lệch bởi các card đồ họa siêu đắt tiền (ngoại lệ đã tìm thấy ở Bước 3). 
+
+\textbf{Điền khuyết bằng yếu vị (Mode)}: Áp dụng cho các biến chữ (memory\_type, manufacturer) bằng cách lấy giá trị xuất hiện nhiều nhất. 
+
+Sau quy trình điền khuyết theo phương pháp Median và Mode, bộ dữ liệu đã hoàn toàn sạch (0\% NA), sẵn sàng cho việc xây dựng mô hình.
+
+\begin{lstlisting}[language=R]
+> print(colSums(is.na(df_clean)))
+release_price           tdp   memory_size    memory_bus    core_speed  manufacturer   memory_type  release_year 
+            0             0             0             0             0             0             0             0 
+\end{lstlisting}
+
+\section*{BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI}
+
+\begin{lstlisting}[language=R]
+df_clean <- df_clean %>%
+  mutate(
+    manufacturer = as.factor(manufacturer),
+    memory_type = as.factor(memory_type)
+  )
+\end{lstlisting}
+
+\textbf{as.factor()}: Hàm này chuyển đổi một cột dạng văn bản (character) thành dạng Yếu tố (Factor).
+
+Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor, giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành.
+
+\begin{lstlisting}[language=R]
+$ manufacturer : Factor w/ 2 levels "1","2": 2 2 2 2 2 2 2 2 ...
+$ memory_type  : Factor w/ 6 levels "DDR3","GDDR3",..: 4 4 3 3 3 3 3 3 6 ...
+\end{lstlisting}
+
+\section*{BƯỚC 6: CHUẨN HÓA DỮ LIỆU (Z-SCORE NORMALIZATION)}
+
+\begin{lstlisting}[language=R]
+df_final <- df_clean %>%
+  mutate(
+    tdp = scale(tdp)[,1],
+    core_speed = scale(core_speed)[,1],
+    memory_size = scale(memory_size)[,1],
+    memory_bus = scale(memory_bus)[,1]
+  )
+\end{lstlisting}
+
+Hàm \texttt{scale} mặc định trả về một ma trận, thêm \texttt{[,1]} để ép nó về dạng cột (vector) giúp dữ liệu đồng nhất.
+
+Lệnh chạy: \texttt{print(stats\_check)}
+\begin{lstlisting}[language=R]
+> print(stats_check)
+  Mean_TDP SD_TDP Mean_Core SD_Core
+1        0      1         0       1
+\end{lstlisting}
+
+Kết quả trung bình bằng 0 và độ lệch chuẩn bằng 1 là bằng chứng đanh thép chứng minh dữ liệu đã được chuẩn hóa thành công.
+
+\section*{BƯỚC 7.1: MÔ HÌNH HỒI QUY TUYẾN TÍNH BỘI}
+
+\subsection*{7.1.1 Kiểm định đa cộng tuyến (VIF)}
+
+\begin{lstlisting}[language=R]
+mlr_model_initial <- lm(release_price ~ tdp + memory_size + memory_bus +
+                            core_speed + manufacturer + memory_type + release_year, data = df_final)
+
+# Sử dụng chuẩn VIF < 5 thay vì VIF < 10 theo đúng lý thuyết
+vif_initial <- vif(mlr_model_initial)
+print(vif_initial)
+\end{lstlisting}
+
+\begin{lstlisting}[language=R]
+> print(vif_initial)
+                  GVIF Df GVIF^(1/(2*Df))
+tdp           2.140665  1        1.463101
+memory_size   2.343250  1        1.530768
+memory_bus    3.662332  1        1.913722
+core_speed    3.238311  1        1.799531
+manufacturer  1.617125  1        1.271662
+memory_type   8.129892  5        1.233129
+release_year  3.598408  1        1.896947
+\end{lstlisting}
+
+\texttt{memory\_type} có VIF khoảng 8.12. Đây là bằng chứng để nhóm loại bỏ biến này ra khỏi mô hình chính thức nhằm đảm bảo tính khách quan.
+
+\subsection*{7.1.2 Xây dựng mô hình chính thức (Log-Linear)}
+
+\begin{lstlisting}[language=R]
+log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
+                          core_speed + manufacturer + release_year, data = df_final)
+
+summary(log_model_final)
+\end{lstlisting}
+
+Nhóm sử dụng hàm \texttt{log(release\_price)} thay vì giá gốc. Việc lấy logarit giúp nén các giá trị cực trị (card đồ họa siêu đắt) và giúp sai số của mô hình tuân theo phân phối chuẩn tốt hơn.
+
+Kết quả trên console:
+\begin{lstlisting}[language=R]
+Coefficients:
+                 Estimate Std. Error t value Pr(>|t|)
+(Intercept)      84.45346   22.49258   3.755 0.000192 ***
+tdp               0.45471    0.01983  22.933  < 2e-16 ***
+memory_size       0.17287    0.02134   8.101 3.54e-15 ***
+memory_bus        0.07061    0.01532   4.610 5.01e-06 ***
+core_speed        0.12173    0.02362   5.153 3.59e-07 ***
+manufacturer2     0.37345    0.03610  10.345  < 2e-16 ***
+release_year     -0.03924    0.01116  -3.517 0.000473 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.3388 on 549 degrees of freedom
+Multiple R-squared:  0.7854,    Adjusted R-squared:  0.783
+\end{lstlisting}
+
+\subsection*{7.1.3 Kiểm định giả định mô hình}
+
+\begin{lstlisting}[language=R]
+print(vif(log_model_final))
+
+cat("\n--- 3b. KIỂM ĐỊNH PHƯƠNG SAI SAI SỐ (Breusch-Pagan) ---\n")
+print(bptest(log_model_final))
+
+cat("\n--- 3c. KIỂM ĐỊNH PHÂN PHỐI CHUẨN PHẦN DƯ (Shapiro-Wilk) ---\n")
+# Kiểm tra xem log() đã cải thiện phần dư chưa
+print(shapiro.test(residuals(log_model_final)))
+\end{lstlisting}
+
+\textbf{Breusch-Pagan}: Kiểm tra xem sai số của mô hình có ổn định không. 
+
+\textbf{Shapiro-Wilk}: Kiểm tra xem phần dư có phân phối chuẩn không. 
+
+Kết quả trên console:
+\begin{lstlisting}[language=R]
+> print(bptest(log_model_final))
+
+        studentized Breusch-Pagan test
+
+data:  log_model_final
+BP = 99.042, df = 6, p-value < 2.2e-16
+
+>
+> cat("\n--- 3c. KIỂM ĐỊNH PHÂN PHỐI CHUẨN PHẦN DƯ (Shapiro-Wilk) ---\n")
+
+--- 3c. KIỂM ĐỊNH PHÂN PHỐI CHUẨN PHẦN DƯ (Shapiro-Wilk) ---
+> # Kiểm tra xem log() đã cải thiện phần dư chưa
+> print(shapiro.test(residuals(log_model_final)))
+
+        Shapiro-Wilk normality test
+
+data:  residuals(log_model_final)
+W = 0.94765, p-value = 4.056e-13
+\end{lstlisting}
+
+\subsection*{7.1.4 Vẽ biểu đồ so sánh giá thực tế với giá dự đoán}
+
+\begin{lstlisting}[language=R]
+# Vẽ scatter plot
+plot(actual_values, predicted_values,
+     main="Biểu đồ so sánh giá thực tế với giá dự đoán",
+     xlab="Giá thực tế (USD)",
+     ylab="Giá dự đoán (USD)",
+     pch=19,
+     col=rgb(0.2, 0.4, 0.6, 0.5))
+# Kẻ đường y=x để làm tham chiếu lý tưởng[cite: 4]
+abline(0, 1, col="red", lwd=2)
+\end{lstlisting}
+
+Biểu đồ so sánh giá thực tế với giá dự đoán:
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{extracted_docx/word/media/image20.png}
+    \caption{Biểu đồ so sánh giá thực tế với giá dự đoán}
+\end{figure}
+
+\section*{7.2. PHÂN TÍCH PHƯƠNG SAI}
+
+\begin{lstlisting}[language=R]
+print(leveneTest(release_price ~ manufacturer, data = df_final))
+\end{lstlisting}
+
+Kiểm tra xem độ phân tán (biến thiên) của giá GPU thuộc hãng NVIDIA có bằng với độ phân tán của giá GPU hãng AMD hay không.
+
+\begin{lstlisting}[language=R]
+> print(leveneTest(release_price ~ manufacturer, data = df_final))
+Levene's Test for Homogeneity of Variance (center = median)
+       Df F value      Pr(>F)    
+group   1  11.168 0.0008884 ***
+      554                        
+\end{lstlisting}
+
+\begin{lstlisting}[language=R]
+anova_result <- oneway.test(release_price ~ manufacturer, data = df_final, var.equal = FALSE)
+print(anova_result)
+\end{lstlisting}
+
+\textbf{oneway.test(...)}: Hàm thực hiện phân tích phương sai một yếu tố.
+
+\textbf{var.equal = FALSE}: Đây là tham số quan trọng nhất. Nó ra lệnh cho R thực hiện hiệu chỉnh Welch nhằm xử lý tình trạng phương sai không đồng nhất đã phát hiện ở bước trên.
+
+Kết quả chạy trên console: 
+\begin{lstlisting}[language=R]
+data:  release_price and manufacturer
+F = 18.39, num df = 1.00, denom df = 309.05, p-value = 2.409e-05
+\end{lstlisting}
+
+\end{document}

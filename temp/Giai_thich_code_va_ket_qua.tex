@@ -1,0 +1,406 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    backgroundcolor=\color{backcolour},
+    escapeinside={}{},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+% Style cho console output
+\definecolor{consolebg}{rgb}{0.96, 0.97, 0.98}
+\lstdefinestyle{console}{
+    backgroundcolor=\color{consolebg},
+    basicstyle=\ttfamily\scriptsize\color{black},
+    breaklines=true,
+    breakatwhitespace=false,
+    frame=single,
+    frameround=tttt,
+    framesep=4pt,
+    rulecolor=\color{lightgray},
+    numbers=none,
+    columns=flexible,
+    showstringspaces=false,
+    keepspaces=true,
+    keywordstyle=\color{black},
+    commentstyle=\color{black},
+    stringstyle=\color{black}
+}
+
+\begin{document}
+
+\section*{BƯỚC 1: TẢI VÀ KHẢO SÁT SƠ BỘ DỮ LIỆU}
+
+\begin{lstlisting}[language=R]
+#   Doc file CSV
+raw_data <- read.csv("All_GPUs.csv", stringsAsFactors = FALSE)
+
+#   Kiem tra du lieu
+str(raw_data)
+summary(raw_data)
+colSums(is.na(raw_data))
+\end{lstlisting}
+
+\textbf{read.csv(..., stringsAsFactors = FALSE)}: Lệnh này giúp R đọc file CSV nhưng giữ nguyên các cột văn bản dưới dạng chuỗi (character) thay vì tự động chuyển thành nhóm (Factor).
+
+\textbf{str(raw\_data)}: Hiển thị cấu trúc của 3406 dòng và 34 cột.
+
+\textbf{colSums(is.na(raw\_data))}: Đây là lệnh cực kỳ quan trọng để đếm số giá trị khuyết (NA). Nó cung cấp bằng chứng thép cho việc tại sao chúng ta phải xử lý dữ liệu ở các bước sau.
+
+Kết quả trên console:
+\begin{lstlisting}[style=console]
+> colSums(is.na(raw_data))
+Architecture            Best_Resolution         Boost_Clock             0
+Core_Speed              DVI_Connection          Dedicated               0
+Direct_X                DisplayPort_Connection  HDMI_Connection         0
+Integrated              L2_Cache                Manufacturer            0
+Max_Power               Memory                  Memory_Bandwidth        0
+Memory_Bus              Memory_Speed            Memory_Type             0
+Name                    Notebook_GPU            Open_GL                40
+PSU                     Pixel_Rate              Power_Connector         0
+Process                 ROPs                    Release_Date            0
+Release_Price           Resolution_WxH          SLI_Crossfire           0
+Shader                 107                      TMUs                  538
+Texture_Rate             0                      VGA_Connection        758
+\end{lstlisting}
+
+\section*{BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU}
+
+\begin{lstlisting}[language=R]
+df <- df %>%
+  mutate(
+    # Gop ATI vao AMD truoc khi thuc hien cac buoc khac
+    manufacturer = ifelse(str_trim(manufacturer) == "ATI", "AMD", str_trim(manufacturer)),
+    release_price = as.numeric(str_extract(release_price, "\\d+\\.?\\d*")),
+    tdp = as.numeric(str_extract(tdp, "\\d+\\.?\\d*")),
+    memory_size = as.numeric(str_extract(memory_size, "\\d+\\.?\\d*")),
+    memory_bus = as.numeric(str_extract(memory_bus, "\\d+\\.?\\d*")),
+    core_speed = as.numeric(str_extract(core_speed, "\\d+\\.?\\d*")),
+    release_date = str_trim(release_date),
+    release_year = as.integer(format(as.Date(release_date, format="%d-%b-%Y"), "%Y"))
+  )
+\end{lstlisting}
+
+\textbf{Gộp ATI vào AMD}: Sử dụng ifelse để sát nhập các dòng của hãng ATI vào AMD vì thực tế AMD đã mua lại ATI, giúp tập hợp dữ liệu hãng sản xuất một cách nhất quán. 
+
+\textbf{str\_extract(..., "\textbackslash{}\textbackslash{}d+\textbackslash{}\textbackslash{}.?\textbackslash{}\textbackslash{}d*")}: Lọc lấy con số từ văn bản. Ví dụ: Từ chuỗi "738 MHz", R sẽ trích xuất đúng số "738" và hàm as.numeric sẽ biến nó thành số thực để tính toán. 
+
+\textbf{as.Date \& format}: Chuyển chuỗi "01-Mar-2009" sang định dạng ngày chuẩn, sau đó chỉ lấy đúng 4 chữ số của năm (release\_year). Theo lý thuyết, năm phát hành là yếu tố then chốt phản ánh xu hướng công nghệ theo thời gian.
+
+Kết quả kiểm tra cấu trúc qua lệnh \texttt{str(df)} cho thấy quy trình ép kiểu tại Bước 2 đã hoàn tất thành công.
+
+\begin{lstlisting}[style=console]
+> str(df)
+'data.frame':   3406 obs. of  8 variables:
+ $ release_price: num  NA NA NA NA NA NA NA NA NA NA ...
+ $ tdp          : num  141 215 200 NA 45 50 190 150 150 32 ...
+ $ memory_size  : num  1024 512 512 256 256 ...
+ $ memory_bus   : num  256 512 256 128 128 128 256 256 256 64 ...
+ $ core_speed   : num  738 NA NA NA NA NA 870 NA NA NA ...
+ $ manufacturer : chr  "Nvidia" "AMD" "AMD" "AMD" ...
+ $ memory_type  : chr  "GDDR3" "GDDR3" "GDDR3" "GDDR4" ...
+ $ release_year : int  2009 2007 2007 2007 2007 2007 2009 2007 2014 2001 ...
+\end{lstlisting}
+
+\section*{BƯỚC 3: XỬ LÝ NGOẠI LỆ}
+
+\begin{lstlisting}[language=R]
+> count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
++   raw_vec <- na.omit(raw_vec)
++   q1 <- quantile(raw_vec, 0.25)
++   q3 <- quantile(raw_vec, 0.75)
++   iqr <- q3 - q1
++   upper_bound <- q3 + 1.5 * iqr
++
++   # Dem xem trong tap sach co bao nhieu gia tri vuot nguong cua tap tho
++   return(sum(clean_vec > upper_bound, na.rm = TRUE))
++ }
+\end{lstlisting}
+
+\textbf{raw\_vec <- na.omit(raw\_vec)}: Loại bỏ tất cả các giá trị khuyết (NA) khỏi dữ liệu thô để việc tính toán phân vị không bị lỗi.
+
+\textbf{q1 <- quantile(raw\_vec, 0.25)}: Tìm giá trị tại vị trí 25\% của dữ liệu (Tứ phân vị thứ nhất).
+
+\textbf{q3 <- quantile(raw\_vec, 0.75)}: Tìm giá trị tại vị trí 75\% của dữ liệu (Tứ phân vị thứ ba).
+
+\textbf{iqr <- q3 - q1}: Tính khoảng cách giữa Q3 và Q1. Đây là độ trải rộng của 50\% dữ liệu nằm ở giữa.
+
+\textbf{upper\_bound <- q3 + 1.5 * iqr}: Xác định ranh giới trên. Theo lý thuyết thống kê của Tukey, bất kỳ giá trị nào lớn hơn ngưỡng này đều được coi là ngoại lệ (cực trị phía trên).
+
+\textbf{return(sum(clean\_vec > upper\_bound, na.rm = TRUE))}: Kiểm tra xem trong tập dữ liệu đã làm sạch (clean\_vec), có bao nhiêu giá trị vượt qua ngưỡng trên đã tính và trả về tổng số lượng đó.
+
+Thống kê ngoại lệ trên console: 
+\begin{lstlisting}[style=console]
+--- THONG KE NGOAI LE (Dua tren ranh gioi tap tho N=3406) ---
+> cat("So luong ngoai le release_price trong mau phan tich:",
++      count_outliers_by_raw_bounds(df$release_price, df_clean$release_price), "\n")
+So luong ngoai le release_price trong mau phan tich: 33
+>
+> cat("So luong ngoai le tdp trong mau phan tich:",
++      count_outliers_by_raw_bounds(df$tdp, df_clean$tdp), "\n")
+So luong ngoai le tdp trong mau phan tich: 23
+>
+> cat("So luong ngoai le core_speed trong mau phan tich:",
++      count_outliers_by_raw_bounds(df$core_speed, df_clean$core_speed), "\n")
+So luong ngoai le core_speed trong mau phan tich: 43
+\end{lstlisting}
+
+\section*{BƯỚC 4: XỬ LÝ GIÁ TRỊ KHUYẾT}
+
+\begin{lstlisting}[language=R]
+> df_clean <- df_clean %>%
++   mutate(
++     # Dien NA bang Median cho bien so lien tuc
++     tdp = ifelse(is.na(tdp), median(tdp, na.rm = TRUE), tdp),
++     memory_size = ifelse(is.na(memory_size), median(memory_size, na.rm = TRUE), memory_size),
++     memory_bus = ifelse(is.na(memory_bus), median(memory_bus, na.rm = TRUE), memory_bus),
++     core_speed = ifelse(is.na(core_speed), median(core_speed, na.rm = TRUE), core_speed),
++     release_year = ifelse(is.na(release_year), median(release_year, na.rm = TRUE), release_year),
++     
++     # Dien NA bang Mode cho bien phan loai
++     memory_type = ifelse(is.na(memory_type) | memory_type == "", get_mode(memory_type), memory_type),
++     manufacturer = ifelse(is.na(manufacturer) | manufacturer == "", get_mode(manufacturer), manufacturer)
++   )
+\end{lstlisting}
+
+\textbf{Lọc điều kiện (Filter)}:
+\begin{itemize}
+    \item Loại bỏ các dòng thiếu \texttt{release\_price} vì đây là biến mục tiêu Y, không thể tự ý điền vào được. 
+    \item Loại bỏ "Intel" vì toàn bộ GPU Intel trong tập dữ liệu thô đều không có giá, giữ lại sẽ gây nhiễu.
+\end{itemize}
+
+\textbf{Điền khuyết bằng Trung vị (Median)}: Áp dụng cho các biến số (tdp, core\_speed...). Trung vị được ưu tiên vì nó không bị kéo lệch bởi các card đồ họa siêu đắt tiền (ngoại lệ đã tìm thấy ở Bước 3). 
+
+\textbf{Điền khuyết bằng yếu vị (Mode)}: Áp dụng cho các biến chữ (memory\_type, manufacturer) bằng cách lấy giá trị xuất hiện nhiều nhất. 
+
+Sau quy trình điền khuyết theo phương pháp Median và Mode, bộ dữ liệu đã hoàn toàn sạch (0\% NA), sẵn sàng cho việc xây dựng mô hình.
+
+\begin{lstlisting}[style=console]
+> print(colSums(is.na(df_clean)))
+release_price        tdp memory_size memory_bus core_speed manufacturer memory_type release_year 
+            0          0           0          0          0            0           0            0 
+\end{lstlisting}
+
+\section*{BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI}
+
+\begin{lstlisting}[language=R]
+df_clean <- df_clean %>%
+  mutate(
+    manufacturer = as.factor(manufacturer),
+    memory_type = as.factor(memory_type)
+  )
+\end{lstlisting}
+
+\textbf{as.factor()}: Hàm này chuyển đổi một cột dạng văn bản (character) thành dạng Yếu tố (Factor).
+
+Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor, giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành.
+
+% GEMINI, PLEASE BEGIN FROM HERE.
+
+\begin{lstlisting}[style=console]
+$ manufacturer : Factor w/ 2 levels "1","2": 2 2 2 2 2 2 2 2 ...
+$ memory_type  : Factor w/ 6 levels "DDR3","GDDR3",..: 4 4 3 3 3 3 3 3 6 ...
+\end{lstlisting}
+
+\section*{BƯỚC 6: CHUẨN HÓA DỮ LIỆU (Z-SCORE NORMALIZATION)}
+
+\begin{lstlisting}[language=R]
+df_final <- df_clean %>%
+  mutate(
+    tdp = scale(tdp)[,1],
+    core_speed = scale(core_speed)[,1],
+    memory_size = scale(memory_size)[,1],
+    memory_bus = scale(memory_bus)[,1]
+  )
+\end{lstlisting}
+
+Hàm \texttt{scale} mặc định trả về một ma trận, thêm \texttt{[,1]} để ép nó về dạng cột (vector) giúp dữ liệu đồng nhất.
+
+Lệnh chạy: \texttt{print(stats\_check)}
+\begin{lstlisting}[style=console]
+> print(stats_check)
+  Mean_TDP SD_TDP Mean_Core SD_Core
+1        0      1         0       1
+\end{lstlisting}
+
+Kết quả trung bình bằng 0 và độ lệch chuẩn bằng 1 là bằng chứng đanh thép chứng minh dữ liệu đã được chuẩn hóa thành công.
+
+\section*{BƯỚC 7.1: MÔ HÌNH HỒI QUY TUYẾN TÍNH BỘI}
+
+\subsection*{7.1.1 Kiểm định đa cộng tuyến (VIF)}
+
+\begin{lstlisting}[language=R]
+mlr_model_initial <- lm(release_price ~ tdp + memory_size + memory_bus +
+                            core_speed + manufacturer + memory_type + release_year, data = df_final)
+
+#   Su dung chuan VIF < 5 thay vi VIF < 10 theo dung ly thuyet
+vif_initial <- vif(mlr_model_initial)
+print(vif_initial)
+\end{lstlisting}
+
+\begin{lstlisting}[style=console]
+> print(vif_initial)
+                  GVIF Df GVIF^(1/(2*Df))
+tdp           2.140665  1        1.463101
+memory_size   2.343250  1        1.530768
+memory_bus    3.662332  1        1.913722
+core_speed    3.238311  1        1.799531
+manufacturer  1.617125  1        1.271662
+memory_type   8.129892  5        1.233129
+release_year  3.598408  1        1.896947
+\end{lstlisting}
+
+\texttt{memory\_type} có VIF khoảng 8.12. Đây là bằng chứng để nhóm loại bỏ biến này ra khỏi mô hình chính thức nhằm đảm bảo tính khách quan.
+
+\subsection*{7.1.2 Xây dựng mô hình chính thức (Log-Linear)}
+
+\begin{lstlisting}[language=R]
+log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
+                          core_speed + manufacturer + release_year, data = df_final)
+
+summary(log_model_final)
+\end{lstlisting}
+
+Nhóm sử dụng hàm \texttt{log(release\_price)} thay vì giá gốc. Việc lấy logarit giúp nén các giá trị cực trị (card đồ họa siêu đắt) và giúp sai số của mô hình tuân theo phân phối chuẩn tốt hơn.
+
+Kết quả trên console:
+\begin{lstlisting}[style=console]
+Coefficients:
+                 Estimate Std. Error t value Pr(>|t|)
+(Intercept)      84.45346   22.49258   3.755 0.000192 ***
+tdp               0.45471    0.01983  22.933  < 2e-16 ***
+memory_size       0.17287    0.02134   8.101 3.54e-15 ***
+memory_bus        0.07061    0.01532   4.610 5.01e-06 ***
+core_speed        0.12173    0.02362   5.153 3.59e-07 ***
+manufacturer2     0.37345    0.03610  10.345  < 2e-16 ***
+release_year     -0.03924    0.01116  -3.517 0.000473 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.3388 on 549 degrees of freedom
+Multiple R-squared:  0.7854,    Adjusted R-squared:  0.783
+\end{lstlisting}
+
+\subsection*{7.1.3 Kiểm định giả định mô hình}
+
+\begin{lstlisting}[language=R]
+print(vif(log_model_final))
+
+cat("\n--- 3b. KIEM DINH PHUONG SAI SAI SO (Breusch-Pagan) ---\n")
+print(bptest(log_model_final))
+
+cat("\n--- 3c. KIEM DINH PHAN PHOI CHUAN PHAN DU (Shapiro-Wilk) ---\n")
+#   Kiem tra xem log() da cai thien phan du chua
+print(shapiro.test(residuals(log_model_final)))
+\end{lstlisting}
+
+\textbf{Breusch-Pagan}: Kiểm tra xem sai số của mô hình có ổn định không. 
+
+\textbf{Shapiro-Wilk}: Kiểm tra xem phần dư có phân phối chuẩn không. 
+
+Kết quả trên console:
+\begin{lstlisting}[style=console]
+> print(bptest(log_model_final))
+
+        studentized Breusch-Pagan test
+
+data:  log_model_final
+BP = 99.042, df = 6, p-value < 2.2e-16
+
+>
+> cat("\n--- 3c. KIEM DINH PHAN PHOI CHUAN PHAN DU (Shapiro-Wilk) ---\n")
+
+--- 3c. KIEM DINH PHAN PHOI CHUAN PHAN DU (Shapiro-Wilk) ---
+> #  Kiem tra xem log() da cai thien phan du chua
+> print(shapiro.test(residuals(log_model_final)))
+
+        Shapiro-Wilk normality test
+
+data:  residuals(log_model_final)
+W = 0.94765, p-value = 4.056e-13
+\end{lstlisting}
+
+\subsection*{7.1.4 Vẽ biểu đồ so sánh giá thực tế với giá dự đoán}
+
+\begin{lstlisting}[language=R]
+#   Ve scatter plot
+plot(actual_values, predicted_values,
+     main="Bieu do so sanh gia thuc te voi gia du doan",
+     xlab="Gia thuc te (USD)",
+     ylab="Gia du doan (USD)",
+     pch=19,
+     col=rgb(0.2, 0.4, 0.6, 0.5))
+#   Ke duong y=x de lam tham chieu ly tuong[cite: 4]
+abline(0, 1, col="red", lwd=2)
+\end{lstlisting}
+
+Biểu đồ so sánh giá thực tế với giá dự đoán:
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{extracted\_docx/word/media/image20.png}
+    \caption{Biểu đồ so sánh giá thực tế với giá dự đoán}
+\end{figure}
+
+\section*{7.2. PHÂN TÍCH PHƯƠNG SAI}
+
+\begin{lstlisting}[language=R]
+print(leveneTest(release_price ~ manufacturer, data = df_final))
+\end{lstlisting}
+
+Kiểm tra xem độ phân tán (biến thiên) của giá GPU thuộc hãng NVIDIA có bằng với độ phân tán của giá GPU hãng AMD hay không.
+
+\begin{lstlisting}[style=console]
+> print(leveneTest(release_price ~ manufacturer, data = df_final))
+Levene's Test for Homogeneity of Variance (center = median)
+       Df F value      Pr(>F)    
+group   1  11.168 0.0008884 ***
+      554                        
+\end{lstlisting}
+
+\begin{lstlisting}[language=R]
+anova_result <- oneway.test(release_price ~ manufacturer, data = df_final, var.equal = FALSE)
+print(anova_result)
+\end{lstlisting}
+
+\textbf{oneway.test(...)}: Hàm thực hiện phân tích phương sai một yếu tố.
+
+\textbf{var.equal = FALSE}: Đây là tham số quan trọng nhất. Nó ra lệnh cho R thực hiện hiệu chỉnh Welch nhằm xử lý tình trạng phương sai không đồng nhất đã phát hiện ở bước trên.
+
+Kết quả chạy trên console: 
+\begin{lstlisting}[style=console]
+> print(anova_result)
+
+	One-way analysis of means (not assuming equal variances)
+
+data:  release_price and manufacturer
+F = 18.39, num df = 1.00, denom df = 309.05, p-value = 2.409e-05
+\end{lstlisting}
+
+\end{document}

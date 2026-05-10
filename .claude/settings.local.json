@@ -1,4 +1,4 @@
-{
+﻿{
   "permissions": {
     "allow": [
       "Bash(winget show *)",
@@ -8,6 +8,23 @@
       "Bash(pdflatex --version)",
       "Bash(xelatex --version)",
       "Bash(tlmgr --version)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; $fp = $j.tool_input.file_path; if ($fp -ne $null -and $fp.EndsWith('.tex')) { & 'E:\\texlive\\2026\\bin\\windows\\latexmk.exe' -pdf -interaction=nonstopmode -cd 'C:\\Users\\Triet\\OneDrive - MSFT\\Documents\\latexdev\\main.tex' }",
+            "shell": "powershell",
+            "timeout": 120,
+            "statusMessage": "Building LaTeX...",
+            "async": true
+          }
+        ]
+      }
     ]
   }
 }
