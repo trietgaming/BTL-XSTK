@@ -419,12 +419,50 @@ Toàn bộ lộ trình --- từ tập dữ liệu thô đến mô hình log-line
 
 Bộ dữ liệu thô chứa 34 thuộc tính, song chỉ một phần nhỏ phù hợp đưa vào mô hình hồi quy giá GPU. Nhóm áp dụng quy trình sàng lọc ba tầng đã trình bày ở Phần~2.2 như sau:
 
-\textbf{Tầng 1 --- Loại theo tỷ lệ dữ liệu khuyết:} Ngưỡng loại bỏ ấn định ở mức \textbf{30\%}. Hình~\ref{fig:missing_ratio} thống kê tỷ lệ thiếu (gồm cả \texttt{NA} và chuỗi rỗng/không hợp lệ) của toàn bộ 34 cột.
+\textbf{Tầng 1 --- Loại theo tỷ lệ dữ liệu khuyết:} Ngưỡng loại bỏ ấn định ở mức \textbf{30\%}. Hình~\ref{fig:missing_ratio} thống kê tỷ lệ thiếu (gồm cả \texttt{NA} và chuỗi rỗng/không hợp lệ) của toàn bộ 34 cột, được vẽ bằng đoạn code sau (chạy trên \texttt{raw\_data} trước mọi bước xử lý):
+
+\begin{lstlisting}[language=R]
+# Dem NA va chuoi rong / khong hop le tren toan bo 34 thuoc tinh
+missing_count <- sapply(raw_data, function(col) {
+  if (is.character(col)) {
+    cleaned <- str_trim(col)
+    sum(is.na(col) | cleaned == "" | cleaned == "-")
+  } else sum(is.na(col))
+})
+missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
+
+# Danh dau 8 bien duoc giu lai de to mau khac
+kept_vars <- c("Release_Price", "Max_Power", "Memory", "Memory_Bus",
+               "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type")
+missing_df <- data.frame(
+  variable = names(missing_pct),
+  pct      = as.numeric(missing_pct),
+  kept     = names(missing_pct) %in% kept_vars
+)
+missing_df <- missing_df[order(-missing_df$pct), ]
+
+bar_colors <- with(missing_df,
+  ifelse(kept, "#2c7fb8", ifelse(pct >= 30, "#e34a33", "#bdbdbd")))
+
+png("figures/missing_data_ratio.png", type = "cairo",
+    width = 2400, height = 2400, res = 300)
+par(mar = c(5, 11, 4, 2))
+barplot(rev(missing_df$pct), names.arg = rev(missing_df$variable),
+        horiz = TRUE, las = 1, col = rev(bar_colors), xlim = c(0, 100),
+        xlab = "Ty le du lieu khuyet (%)",
+        main = "Ty le du lieu khuyet cua 34 thuoc tinh (N = 3.406)",
+        cex.names = 0.7, cex.main = 1.05)
+abline(v = 30, col = "red", lty = 2, lwd = 1.5)
+legend("bottomright",
+       legend = c("Bien duoc chon (8)", "Bi loai (thieu >= 30%)", "Bi loai (ly do khac)"),
+       fill = c("#2c7fb8", "#e34a33", "#bdbdbd"), cex = 0.85, bty = "n")
+dev.off()
+\end{lstlisting}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/missing_data_ratio.png}
-    \caption{Tỷ lệ dữ liệu khuyết của 34 thuộc tính trong bộ dữ liệu thô ($N = 3.406$).}
+    \caption{Tỷ lệ dữ liệu khuyết của 34 thuộc tính trong bộ dữ liệu thô ($N = 3.406$). Đường đỏ đứt nét là ngưỡng loại 30\%; cột xanh là 8 biến được giữ lại, cột đỏ bị loại do thiếu, cột xám bị loại vì lý do khác.}
     \label{fig:missing_ratio}
 \end{figure}
 
@@ -444,7 +482,38 @@ Sau ba tầng lọc, danh sách rút gọn còn \textbf{8 biến chính thức}.
 
 \subsubsection{Kiểm chứng tương quan giữa biến số và giá GPU}
 
-Để xác nhận các biến được chọn có liên hệ ý nghĩa với biến phụ thuộc, nhóm tính ma trận tương quan Pearson trên tập đã làm sạch (sau điền khuyết, trước chuẩn hóa). Kết quả tại Hình~\ref{fig:cor_matrix}; bảng số liệu đầy đủ tại Phần~\ref{sec:ket_qua_tuong_quan}.
+Để xác nhận các biến được chọn có liên hệ ý nghĩa với biến phụ thuộc, nhóm tính ma trận tương quan Pearson trên tập đã làm sạch (sau điền khuyết, trước chuẩn hóa). Code vẽ heatmap:
+
+\begin{lstlisting}[language=R]
+# Tinh ma tran tuong quan Pearson tren tap da lam sach (N = 556)
+numeric_subset <- df_clean %>%
+  select(release_price, tdp, memory_size, memory_bus, core_speed, release_year)
+
+cor_matrix <- cor(numeric_subset, use = "complete.obs")
+display_labels <- c("Gia phat hanh", "TDP", "Dung luong RAM",
+                    "Bang thong bus", "Xung nhip loi", "Nam phat hanh")
+colnames(cor_matrix) <- rownames(cor_matrix) <- display_labels
+
+png("figures/correlation_matrix.png", type = "cairo",
+    width = 2000, height = 1800, res = 300)
+par(mar = c(8, 8, 4, 5))
+n <- ncol(cor_matrix)
+image(1:n, 1:n, t(cor_matrix[n:1, ]),
+      col    = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
+      breaks = seq(-1, 1, length.out = 101),
+      axes = FALSE, xlab = "", ylab = "",
+      main = "Ma tran tuong quan Pearson (N = 556)")
+axis(1, at = 1:n, labels = colnames(cor_matrix), las = 2, cex.axis = 0.85)
+axis(2, at = 1:n, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.85)
+for (i in 1:n) for (j in 1:n) {
+  val <- cor_matrix[i, j]
+  text(j, n - i + 1, sprintf("%.2f", val), cex = 0.95,
+       col = ifelse(abs(val) > 0.6, "white", "black"))
+}
+dev.off()
+\end{lstlisting}
+
+Kết quả tại Hình~\ref{fig:cor_matrix}; bảng số liệu đầy đủ tại Phần~\ref{sec:ket_qua_tuong_quan}.
 
 \begin{figure}[H]
     \centering
@@ -543,7 +612,30 @@ count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
 }
 \end{lstlisting}
 
-Hàm tính ranh giới IQR trên tập thô (\texttt{raw\_vec}) rồi đếm ngoại lệ trên tập sạch (\texttt{clean\_vec}). Theo lý thuyết Tukey, giá trị vượt $Q_3 + 1{,}5 \times \mathrm{IQR}$ được coi là ngoại lệ phía trên. Kết quả: \texttt{release\_price} có 33 ngoại lệ, \texttt{tdp} có 23, \texttt{core\_speed} có 43 (chi tiết tại Phần~4).
+Hàm tính ranh giới IQR trên tập thô (\texttt{raw\_vec}) rồi đếm ngoại lệ trên tập sạch (\texttt{clean\_vec}). Theo lý thuyết Tukey, giá trị vượt $Q_3 + 1{,}5 \times \mathrm{IQR}$ được coi là ngoại lệ phía trên. Kết quả: \texttt{release\_price} có 33 ngoại lệ, \texttt{tdp} có 27, \texttt{core\_speed} có 29 (chi tiết tại Phần~4).
+
+Boxplot dưới đây minh họa phân phối và vị trí ngoại lệ của ba biến trên tập phân tích ($N = 556$):
+
+\begin{lstlisting}[language=R]
+png("figures/boxplot_outliers.png", type = "cairo",
+    width = 900, height = 400, res = 120)
+par(mfrow = c(1, 3))
+boxplot(df_clean$release_price, main = "Gia (N=556)",
+        col = "lightblue",  ylab = "USD")
+boxplot(df_clean$tdp,           main = "TDP (N=556)",
+        col = "lightgreen", ylab = "Watts")
+boxplot(df_clean$core_speed,    main = "Core Speed (N=556)",
+        col = "salmon",     ylab = "MHz")
+par(mfrow = c(1, 1))
+dev.off()
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/boxplot_outliers.png}
+    \caption{Boxplot của ba biến có ngoại lệ trên mẫu phân tích ($N = 556$). Các điểm vượt râu trên đều thuộc GPU flagship hoặc workstation --- ngoại lệ hợp lệ, được giữ lại.}
+    \label{fig:boxplot_outliers}
+\end{figure}
 
 \subsection{Bước 4: Xử lý giá trị khuyết}
 
@@ -663,10 +755,29 @@ print(shapiro.test(residuals(log_model_final)))
 \textbf{Breusch-Pagan}: Kiểm tra tính đồng nhất của phương sai sai số. \textbf{Shapiro-Wilk}: Kiểm tra phân phối chuẩn của phần dư. Kết quả: $BP = 99.04$, $p < 2.2 \times 10^{-16}$ (phương sai chưa đồng nhất); $W = 0.948$, $p = 4.056 \times 10^{-13}$ (gần chuẩn hơn OLS nhưng vẫn vi phạm nhẹ). Chi tiết diễn giải tại Phần~4.
 
 \textbf{7.1.4 Biểu đồ so sánh giá thực tế với giá dự đoán}
+
+Dùng \texttt{exp()} để đưa log-giá dự đoán về lại đơn vị USD, sau đó vẽ scatter plot so sánh với giá thực:
+
+\begin{lstlisting}[language=R]
+predicted_values <- exp(predict(log_model_final))
+actual_values    <- df_final$release_price
+
+png("figures/scatter_actual_vs_predicted.png", type = "cairo",
+    width = 700, height = 600, res = 120)
+plot(actual_values, predicted_values,
+     main = "Bieu do so sanh gia thuc te voi gia du doan",
+     xlab = "Gia thuc te (USD)",
+     ylab = "Gia du doan (USD)",
+     pch = 19, col = rgb(0.2, 0.4, 0.6, 0.5))
+abline(0, 1, col = "red", lwd = 2)   # Duong ly tuong y = x
+dev.off()
+\end{lstlisting}
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{extracted_docx/word/media/image20.png}
-    \caption{Biểu đồ so sánh giá thực tế với giá dự đoán}
+    \includegraphics[width=0.78\textwidth]{figures/scatter_actual_vs_predicted.png}
+    \caption{Scatter plot giá thực tế vs. giá dự đoán từ mô hình Log-Linear. Đường đỏ là tham chiếu lý tưởng $\hat{y} = y$; các điểm ở phân khúc giá cao (GPU flagship) phân tán nhiều hơn, phản ánh hạn chế còn lại của mô hình.}
+    \label{fig:scatter_pred}
 \end{figure}
 
 \subsubsection{7.2. Phân tích phương sai}
