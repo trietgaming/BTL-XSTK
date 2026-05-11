@@ -35,7 +35,6 @@ Thứ tự ưu tiên khi viết/sửa báo cáo:
 1. **Visualization** — Biểu đồ rõ ràng, màu sắc phù hợp, legend dễ đọc, không rối mắt.
 2. **Rành mạch & Logic** — Mỗi đoạn có lý do tồn tại, dẫn dắt tự nhiên sang phần kế.
 3. **Dễ hiểu** — Giải thích thuật ngữ thống kê khi xuất hiện lần đầu, không giả định người đọc biết trước.
-4. **Làm sáng tỏ vấn đề** — Mỗi biểu đồ/bảng phải trả lời một câu hỏi cụ thể, đừng để hình ảnh "tự nói chuyện".
 
 ### 5. Bố cục cố định — KHÔNG ĐƯỢC THAY ĐỔI
 Các `\section{}` cấp cao nhất là quy định của giảng viên, **tuyệt đối không sửa tên, thứ tự, hay xóa**.
@@ -60,7 +59,7 @@ Không được chỉ viết "có ý nghĩa thống kê" mà thiếu con số.
 ### 8. Chất lượng visualization
 - **Bảng màu nhất quán** toàn báo cáo: chọn 1 palette (ví dụ `RColorBrewer` "Set2" hoặc `viridis`) và dùng xuyên suốt, không trộn màu tuỳ hứng.
 - **Font chữ trong plot đủ lớn để đọc khi in** — dùng `base_size = 12` trong ggplot2 hoặc `cex.lab = 1.2` trong base R.
-- Mỗi hình phải có **đoạn nhận xét trực tiếp trong văn bản ngay sau** — không để hình "tự nói chuyện". Câu nhận xét phải chỉ ra insight cụ thể, không chỉ mô tả lại những gì đã thấy.
+- Mỗi hình phải có **đoạn nhận xét trực tiếp trong văn bản ngay sau** — không để hình "tự nói chuyện". Câu nhận xét phải chỉ ra insight cụ thể, không chỉ mô tả lại những gì đã thấy. Nhận xét không nằm trong label mà ở đoạn văn bên dưới
 
 ### 9. Viết học thuật
 - Mỗi `\subsection` nên:
@@ -118,7 +117,7 @@ Khi nhắc đến kết quả cụ thể trong văn bản, dùng `\ref{fig:...}`
 - [ ] Tất cả biểu đồ có caption đầy đủ và label.
 - [ ] Palette màu nhất quán toàn bài.
 - [ ] Trục biểu đồ dùng nhãn tiếng Việt + đơn vị, không để tên biến R raw.
-- [ ] Mỗi hình có đoạn nhận xét cụ thể ngay sau trong văn bản.
+- [ ] Mỗi hình có đoạn nhận xét cụ thể.
 - [ ] Font chữ trong plot đủ lớn để đọc khi in.
 
 ### Viết & Cấu trúc

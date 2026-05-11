@@ -321,6 +321,162 @@ plot(actual_values, predicted_values,
 abline(0, 1, col="red", lwd=2)
 dev.off()
 
+# --- BIỂU ĐỒ CHẨN ĐOÁN PHẦN DƯ (Residuals vs Fitted + Q-Q Plot) ---
+cat("\n--- 5. VẼ BIỂU ĐỒ CHẨN ĐOÁN PHẦN DƯ ---\n")
+png("figures/diagnostic_residuals.png", type = "cairo",
+    width = 1800, height = 800, res = 200)
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
+
+# Panel trái: Residuals vs Fitted
+fitted_vals <- fitted(log_model_final)
+resid_vals <- residuals(log_model_final)
+plot(fitted_vals, resid_vals,
+     main = "Phần dư vs. Giá trị ước lượng",
+     xlab = "Giá trị ước lượng (log-scale)",
+     ylab = "Phần dư (Residuals)",
+     pch = 19, col = rgb(0.2, 0.4, 0.6, 0.4),
+     cex.lab = 1.1, cex.main = 1.15)
+abline(h = 0, col = "red", lwd = 2, lty = 2)
+lines(lowess(fitted_vals, resid_vals), col = "#e34a33", lwd = 2)
+
+# Panel phải: Q-Q Plot
+qqnorm(resid_vals,
+       main = "Q-Q Plot phần dư",
+       pch = 19, col = rgb(0.2, 0.4, 0.6, 0.4),
+       cex.lab = 1.1, cex.main = 1.15)
+qqline(resid_vals, col = "red", lwd = 2)
+
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/diagnostic_residuals.png ---\n")
+
+# --- BIỂU ĐỒ PHÂN PHỐI GIÁ: GỐC vs LOG ---
+cat("\n--- 6. VẼ BIỂU ĐỒ PHÂN PHỐI GIÁ (Gốc vs Log) ---\n")
+png("figures/price_distribution_compare.png", type = "cairo",
+    width = 1800, height = 800, res = 200)
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
+
+# Panel trái: Phân phối giá gốc
+hist(df_final$release_price,
+     breaks = 40, col = "#2c7fb8", border = "white",
+     main = "Phân phối giá phát hành (USD)",
+     xlab = "Giá (USD)", ylab = "Tần suất",
+     cex.lab = 1.1, cex.main = 1.15)
+abline(v = median(df_final$release_price), col = "red", lwd = 2, lty = 2)
+abline(v = mean(df_final$release_price), col = "#e34a33", lwd = 2, lty = 3)
+legend("topright",
+       legend = c(paste0("Median = $", round(median(df_final$release_price))),
+                  paste0("Mean = $", round(mean(df_final$release_price)))),
+       col = c("red", "#e34a33"), lty = c(2, 3), lwd = 2,
+       cex = 0.85, bty = "n")
+
+# Panel phải: Phân phối log(giá)
+hist(log(df_final$release_price),
+     breaks = 30, col = "#41ae76", border = "white",
+     main = "Phân phối log(giá phát hành)",
+     xlab = "log(Giá)", ylab = "Tần suất",
+     cex.lab = 1.1, cex.main = 1.15)
+abline(v = median(log(df_final$release_price)), col = "red", lwd = 2, lty = 2)
+abline(v = mean(log(df_final$release_price)), col = "#e34a33", lwd = 2, lty = 3)
+legend("topright",
+       legend = c(paste0("Median = ", round(median(log(df_final$release_price)), 2)),
+                  paste0("Mean = ", round(mean(log(df_final$release_price)), 2))),
+       col = c("red", "#e34a33"), lty = c(2, 3), lwd = 2,
+       cex = 0.85, bty = "n")
+
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/price_distribution_compare.png ---\n")
+
+# --- BOXPLOT SO SÁNH GIÁ NVIDIA vs AMD ---
+cat("\n--- 7. VẼ BOXPLOT SO SÁNH GIÁ NVIDIA vs AMD ---\n")
+png("figures/boxplot_nvidia_vs_amd.png", type = "cairo",
+    width = 1400, height = 900, res = 200)
+par(mar = c(5, 5, 4, 2))
+boxplot(release_price ~ manufacturer, data = df_final,
+        col = c("#e34a33", "#2c7fb8"),
+        main = "Phân phối giá phát hành theo hãng sản xuất (N = 556)",
+        xlab = "Hãng sản xuất",
+        ylab = "Giá phát hành (USD)",
+        cex.lab = 1.15, cex.main = 1.2,
+        outline = TRUE, notch = TRUE)
+
+# Thêm mean marker
+amd_mean <- mean(df_final$release_price[df_final$manufacturer == "AMD"])
+nv_mean <- mean(df_final$release_price[df_final$manufacturer == "NVIDIA"])
+points(1, amd_mean, pch = 18, col = "yellow", cex = 2)
+points(2, nv_mean, pch = 18, col = "yellow", cex = 2)
+legend("topright",
+       legend = c(paste0("Mean AMD = $", round(amd_mean)),
+                  paste0("Mean NVIDIA = $", round(nv_mean)),
+                  "Notch = 95% CI of Median"),
+       pch = c(18, 18, NA), col = c("yellow", "yellow", NA),
+       cex = 0.85, bty = "n")
+dev.off()
+cat("--- Đã xuất figures/boxplot_nvidia_vs_amd.png ---\n")
+
+# --- BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ (Coefficient Importance) ---
+cat("\n--- 8. VẼ BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ ---\n")
+coef_df <- summary(log_model_final)$coefficients
+# Lọc bỏ Intercept, lấy tên biến và hệ số
+var_names <- rownames(coef_df)[-1]
+var_coefs <- coef_df[-1, "Estimate"]
+var_pct <- (exp(var_coefs) - 1) * 100
+
+# Nhãn tiếng Việt cho biểu đồ
+display_names <- c("TDP (Công suất)", "Dung lượng RAM", "Băng thông Bus",
+                   "Xung nhịp lõi", "Hãng NVIDIA", "Năm phát hành")
+
+# Sắp xếp theo độ lớn tuyệt đối
+ord <- order(abs(var_pct))
+var_pct_sorted <- var_pct[ord]
+display_sorted <- display_names[ord]
+bar_cols <- ifelse(var_pct_sorted > 0, "#2c7fb8", "#e34a33")
+
+png("figures/coefficient_importance.png", type = "cairo",
+    width = 1800, height = 1000, res = 200)
+par(mar = c(5, 10, 4, 4))
+bp <- barplot(var_pct_sorted,
+              names.arg = display_sorted,
+              horiz = TRUE, las = 1,
+              col = bar_cols, border = NA,
+              main = "Tác động của từng biến lên giá GPU (%)",
+              xlab = "Thay đổi giá (%) khi tăng 1 đơn vị",
+              cex.names = 0.95, cex.lab = 1.1, cex.main = 1.15,
+              xlim = c(min(var_pct_sorted) - 5, max(var_pct_sorted) + 12))
+# Thêm nhãn giá trị
+text(var_pct_sorted, bp, labels = paste0(ifelse(var_pct_sorted > 0, "+", ""),
+     round(var_pct_sorted, 1), "%"),
+     pos = ifelse(var_pct_sorted > 0, 4, 2), cex = 0.85, font = 2)
+abline(v = 0, col = "gray40", lwd = 1.5, lty = 2)
+legend("bottomright",
+       legend = c("Tác động tăng giá", "Tác động giảm giá"),
+       fill = c("#2c7fb8", "#e34a33"), cex = 0.85, bty = "n")
+dev.off()
+cat("--- Đã xuất figures/coefficient_importance.png ---\n")
+
+# --- HISTOGRAM PHẦN DƯ ---
+cat("\n--- 9. VẼ HISTOGRAM PHẦN DƯ ---\n")
+png("figures/residual_histogram.png", type = "cairo",
+    width = 1200, height = 800, res = 200)
+par(mar = c(5, 5, 4, 2))
+hist(resid_vals,
+     breaks = 35, col = "#756bb1", border = "white",
+     main = "Phân phối phần dư của mô hình Log-Linear",
+     xlab = "Phần dư", ylab = "Tần suất",
+     cex.lab = 1.1, cex.main = 1.15, freq = FALSE)
+# Overlay đường cong phân phối chuẩn lý tưởng
+curve(dnorm(x, mean = mean(resid_vals), sd = sd(resid_vals)),
+      add = TRUE, col = "red", lwd = 2)
+legend("topright",
+       legend = c("Phần dư thực tế", "Phân phối chuẩn lý tưởng"),
+       fill = c("#756bb1", NA), border = c("white", NA),
+       lty = c(NA, 1), col = c(NA, "red"), lwd = c(NA, 2),
+       cex = 0.85, bty = "n")
+dev.off()
+cat("--- Đã xuất figures/residual_histogram.png ---\n")
+
+
 # 7.2. PHÂN TÍCH PHƯƠNG SAI (WELCH'S ANOVA) - CẬP NHẬT FINAL
 
 # 1. Kiểm định tính đồng nhất phương sai (Levene's Test)
