@@ -63,16 +63,16 @@ barplot(rev(missing_df$pct),
         horiz = TRUE, las = 1,
         col = rev(bar_colors),
         xlim = c(0, 100),
-        xlab = "Ty le du lieu khuyet (%)",
-        main = "Ty le du lieu khuyet cua 34 thuoc tinh (N = 3.406)",
+        xlab = "Tỷ lệ dữ liệu khuyết (%)",
+        main = "Tỷ lệ dữ liệu khuyết của 34 thuộc tính (N = 3.406)",
         cex.names = 0.7, cex.main = 1.05)
 abline(v = 30, col = "red", lty = 2, lwd = 1.5)
 legend("bottomright",
-       legend = c("Bien duoc chon (8)", "Bi loai (thieu >= 30%)", "Bi loai (ly do khac)"),
+       legend = c("Biến được chọn (8)", "Bị loại (thiếu >= 30%)", "Bị loại (lý do khác)"),
        fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
        cex = 0.85, bty = "n")
 dev.off()
-cat("\n--- Da xuat figures/missing_data_ratio.png ---\n")
+cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
 
 # BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU
 
@@ -139,7 +139,7 @@ cat("Số lượng ngoại lệ core_speed trong mẫu phân tích:",
 #  3.3: Vẽ Boxplot minh họa (Dùng tập df_clean N=556) ---
 png("figures/boxplot_outliers.png", type="cairo", width=900, height=400, res=120)
 par(mfrow=c(1,3))
-boxplot(df_clean$release_price, main="Gia (N=556)", col="lightblue", ylab="USD")
+boxplot(df_clean$release_price, main="Giá (N=556)", col="lightblue", ylab="USD")
 boxplot(df_clean$tdp, main="TDP (N=556)", col="lightgreen", ylab="Watts")
 boxplot(df_clean$core_speed, main="Core Speed (N=556)", col="salmon", ylab="MHz")
 par(mfrow=c(1,1))
@@ -174,8 +174,8 @@ numeric_subset <- df_clean %>%
   select(release_price, tdp, memory_size, memory_bus, core_speed, release_year)
 
 cor_matrix <- cor(numeric_subset, use = "complete.obs")
-display_labels <- c("Gia phat hanh", "TDP", "Dung luong RAM",
-                    "Bang thong bus", "Xung nhip loi", "Nam phat hanh")
+display_labels <- c("Giá phát hành", "TDP", "Dung lượng RAM",
+                    "Băng thông bus", "Xung nhịp lõi", "Năm phát hành")
 colnames(cor_matrix) <- display_labels
 rownames(cor_matrix) <- display_labels
 
@@ -190,7 +190,7 @@ image(1:n_cor, 1:n_cor, img_data,
       col = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
       breaks = seq(-1, 1, length.out = 101),
       axes = FALSE, xlab = "", ylab = "",
-      main = "Ma tran tuong quan Pearson giua cac bien so (N = 556)")
+      main = "Ma trận tương quan Pearson giữa các biến số (N = 556)")
 axis(1, at = 1:n_cor, labels = colnames(cor_matrix), las = 2, cex.axis = 0.85)
 axis(2, at = 1:n_cor, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.85)
 
@@ -202,7 +202,7 @@ for (i in 1:n_cor) {
   }
 }
 dev.off()
-cat("\n--- Da xuat figures/correlation_matrix.png ---\n")
+cat("\n--- Đã xuất figures/correlation_matrix.png ---\n")
 
 # BƯỚC 5: MÃ HÓA BIẾN PHÂN LOẠI
 
@@ -297,9 +297,9 @@ actual_values <- df_final$release_price
 # Vẽ scatter plot
 png("figures/scatter_actual_vs_predicted.png", type="cairo", width=700, height=600, res=120)
 plot(actual_values, predicted_values,
-     main="Bieu do so sanh gia thuc te voi gia du doan",
-     xlab="Gia thuc te (USD)",
-     ylab="Gia du doan (USD)",
+     main="Biểu đồ so sánh giá thực tế với giá dự đoán",
+     xlab="Giá thực tế (USD)",
+     ylab="Giá dự đoán (USD)",
      pch=19,
      col=rgb(0.2, 0.4, 0.6, 0.5))
 # Kẻ đường y=x để làm tham chiếu lý tưởng
