@@ -1,0 +1,140 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Kết quả Thu được}
+
+Phần này trình bày các phát hiện chính theo hai hướng nghiên cứu đã đề ra: (i)~xây dựng mô hình hồi quy định lượng các yếu tố ảnh hưởng đến giá GPU, và (ii)~kiểm định sự khác biệt giá giữa NVIDIA và AMD. Trước khi đi vào mô hình, nhóm khảo sát phân phối biến phụ thuộc để lựa chọn chiến lược mô hình phù hợp.
+
+\subsection{Phân phối giá GPU và lý do biến đổi logarit}
+
+Trên mẫu phân tích ($n = 556$), giá phát hành GPU có phân phối lệch phải cực đoan: Mean $= \$371{,}56$ trong khi Median chỉ $\$240$ (SD $= \$698{,}26$, Max $= \$14.999$). Khoảng cách lớn giữa Mean và Median cho thấy một nhóm nhỏ GPU flagship (TITAN, Quadro) kéo trung bình lên đáng kể.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/price_distribution_compare.png}
+    \caption{So sánh phân phối giá phát hành trước và sau biến đổi logarit ($n = 556$). Panel trái: phân phối gốc lệch phải nghiêm trọng; panel phải: phân phối $\log(\text{Giá})$ gần đối xứng, phù hợp hơn cho hồi quy OLS.}
+    \label{fig:price_dist}
+\end{figure}
+
+Hình~\ref{fig:price_dist} minh họa rõ lý do nhóm chọn biến đổi logarit: phân phối gốc (panel trái) vi phạm giả định chuẩn với đuôi phải kéo dài, trong khi $\log(\text{Giá})$ (panel phải) có dạng gần đối xứng. Đây là cơ sở thực nghiệm quan trọng dẫn đến quyết định dùng mô hình Log-Linear thay vì OLS trên giá gốc.
+
+\subsection{Câu hỏi nghiên cứu 1: Chênh lệch giá NVIDIA và AMD}
+
+Trước khi đưa biến thương hiệu vào mô hình đa biến, nhóm kiểm định riêng biệt xem khoảng cách giá giữa hai hãng có ý nghĩa thống kê hay không.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.72\textwidth]{figures/boxplot_nvidia_vs_amd.png}
+    \caption{Boxplot so sánh phân phối giá GPU giữa AMD và NVIDIA ($N = 556$). Notch không trùng nhau cho thấy sự khác biệt trung vị có ý nghĩa; các điểm ngoại lệ phía NVIDIA phản ánh phân khúc workstation đắt đỏ.}
+    \label{fig:boxplot_brand}
+\end{figure}
+
+Hình~\ref{fig:boxplot_brand} cho thấy hai đặc điểm nổi bật: (i)~phân phối giá NVIDIA trải rộng hơn nhiều so với AMD (SD $= \$943$ vs. $\$198$), và (ii)~trung vị giá NVIDIA ($\$324{,}50$) cao hơn AMD ($\$200$) khoảng 62\%. Sự chênh lệch phương sai này dẫn đến vi phạm giả định đồng nhất phương sai của ANOVA truyền thống, buộc nhóm sử dụng Welch's ANOVA thay vì ANOVA cổ điển.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả kiểm định so sánh giá GPU giữa hai hãng ($N = 556$)}
+\label{tab:anova_result}
+\begin{tabular}{|l|r|r|r|r|}
+\hline
+\textbf{Hãng} & \textbf{n} & \textbf{Mean (USD)} & \textbf{Median (USD)} & \textbf{SD (USD)} \\
+\hline
+AMD & 272 & \$246,30 & \$200,00 & \$197,93 \\
+NVIDIA & 284 & \$491,73 & \$324,50 & \$943,42 \\
+\hline
+\multicolumn{5}{|l|}{\textbf{Levene's Test:} $F = 11{,}168$, $p = 0{,}000888$ $\to$ Phương sai KHÔNG đồng nhất} \\
+\multicolumn{5}{|l|}{\textbf{Welch's ANOVA:} $F = 18{,}39$, $df_1 = 1$, $df_2 = 309{,}05$, $p = 2{,}409 \times 10^{-5}$ ***} \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Kết luận:} Levene's Test bác bỏ $H_0$ đồng nhất phương sai ($p < 0{,}001$), xác nhận việc dùng Welch's ANOVA là đúng đắn. Kết quả Welch's ANOVA ($F = 18{,}39$, $p = 2{,}409 \times 10^{-5}$) bác bỏ $H_0$: $\mu_{\mathrm{NVIDIA}} = \mu_{\mathrm{AMD}}$ tại mức $\alpha = 0{,}05$, nghĩa là NVIDIA có giá trung bình cao hơn AMD \textbf{\$245,43} một cách có ý nghĩa thống kê. Vì chỉ có 2 nhóm, kết quả này tương đương Welch's T-test và không cần hậu kiểm.
+
+\subsection{Câu hỏi nghiên cứu 2: Yếu tố nào quyết định giá GPU?}
+
+Để trả lời câu hỏi này, nhóm xây dựng mô hình hồi quy tuyến tính bội. Mô hình OLS trên giá gốc cho kết quả kém (Adjusted $R^2 = 29\%$, 2/6 biến không có ý nghĩa, vi phạm nghiêm trọng giả định chuẩn phần dư với $W = 0{,}239$). Sau khi chuyển sang mô hình Log-Linear --- như đã được lý giải bằng phân phối giá ở Hình~\ref{fig:price_dist} --- chất lượng mô hình cải thiện vượt bậc.
+
+\subsubsection{Bảng hệ số hồi quy Log-Linear}
+
+\begin{table}[H]
+\centering
+\caption{Hệ số hồi quy mô hình Log-Linear chính thức ($n = 556$, Adjusted $R^2 = 78{,}30\%$)}
+\label{tab:log_coef}
+\begin{tabular}{|l|r|r|r|r|l|}
+\hline
+\textbf{Biến} & \textbf{$\hat{\beta}$} & \textbf{Std. Error} & \textbf{t value} & \textbf{p-value} & \textbf{Sig.} \\
+\hline
+(Intercept) & 84,453 & 22,493 & 3,755 & 0,000192 & *** \\
+TDP & 0,4547 & 0,01983 & 22,933 & $< 2 \times 10^{-16}$ & *** \\
+Dung lượng RAM & 0,1729 & 0,02134 & 8,101 & $< 2 \times 10^{-16}$ & *** \\
+Băng thông Bus & 0,0706 & 0,01532 & 4,610 & $< 0{,}001$ & *** \\
+Xung nhịp lõi & 0,1217 & 0,02362 & 5,153 & $< 0{,}001$ & *** \\
+Hãng NVIDIA & 0,3735 & 0,03610 & 10,345 & $< 2 \times 10^{-16}$ & *** \\
+Năm phát hành & $-0,0392$ & 0,01116 & $-3,517$ & 0,000473 & *** \\
+\hline
+\multicolumn{6}{|l|}{$R^2 = 0{,}7854$ \quad Adjusted $R^2 = 0{,}7830$ \quad $F(6, 549) = 334{,}8$ \quad $p < 2{,}2 \times 10^{-16}$} \\
+\hline
+\end{tabular}
+\end{table}
+
+Mô hình giải thích \textbf{78,54\%} phương sai log-giá (vượt mục tiêu $\geq 70\%$), và \textbf{tất cả 6 biến đều có ý nghĩa} ($p < 0{,}001$). Phương trình hồi quy cuối cùng:
+\[
+\log(\hat{Y}) = 84{,}45 + 0{,}455 \cdot \text{TDP} + 0{,}173 \cdot \text{RAM} + 0{,}071 \cdot \text{Bus} + 0{,}122 \cdot \text{Core} + 0{,}374 \cdot [\text{NVIDIA}] - 0{,}039 \cdot \text{Năm}
+\]
+
+\subsubsection{Tầm quan trọng tương đối của các biến}
+
+Vì các biến số đã được chuẩn hóa Z-score, độ lớn hệ số $\hat{\beta}$ phản ánh trực tiếp tầm quan trọng tương đối. Hình~\ref{fig:coef_importance} trực quan hóa tác động phần trăm lên giá GPU khi mỗi biến tăng 1 đơn vị (1~SD cho biến số, chuyển nhóm cho biến giả):
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.88\textwidth]{figures/coefficient_importance.png}
+    \caption{Tác động phần trăm của từng biến lên giá GPU, tính theo công thức $(e^{\hat{\beta}} - 1) \times 100\%$. Thanh xanh: tác động tăng giá; thanh đỏ: tác động giảm giá.}
+    \label{fig:coef_importance}
+\end{figure}
+
+\textbf{Diễn giải theo ngữ cảnh thị trường GPU:}
+\begin{itemize}
+    \item \textbf{TDP (công suất)} là yếu tố quyết định mạnh nhất: tăng 1~SD $\to$ giá tăng $\approx 57{,}5\%$. GPU công suất cao thường là dòng flagship với chip lớn hơn, nhiều nhân xử lý hơn --- phản ánh chi phí sản xuất silicon.
+    \item \textbf{Thương hiệu NVIDIA} đắt hơn AMD $\approx 45{,}2\%$ cùng thông số ($e^{0{,}3735} - 1$) --- đây là ``phí thương hiệu'' định lượng được, bao gồm hệ sinh thái CUDA, driver ổn định, và chiến lược định giá premium.
+    \item \textbf{Dung lượng RAM} ($+18{,}9\%$/SD) và \textbf{xung nhịp lõi} ($+12{,}9\%$/SD) ảnh hưởng đáng kể --- người mua sẵn sàng trả thêm cho VRAM lớn hơn và tốc độ xử lý cao hơn.
+    \item \textbf{Băng thông bus} ($+7{,}3\%$/SD) có tác động nhỏ nhất trong các biến kỹ thuật nhưng vẫn có ý nghĩa --- thông số này ít được người mua chú ý trực tiếp.
+    \item \textbf{Năm phát hành} ($-3{,}8\%$/năm) phản ánh xu hướng giảm giá theo thời gian nhờ tiến bộ công nghệ bán dẫn (Moore's Law), nghĩa là GPU thế hệ mới có hiệu năng/giá tốt hơn.
+\end{itemize}
+
+\subsubsection{Khả năng dự đoán của mô hình}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.72\textwidth]{figures/scatter_actual_vs_predicted.png}
+    \caption{Scatter plot giá thực tế vs. giá dự đoán (đã chuyển về USD bằng $\exp$). Đường đỏ: tham chiếu lý tưởng $\hat{y} = y$. Mô hình dự đoán tốt ở phân khúc phổ thông ($< \$1.000$); các điểm phân tán mạnh ở phân khúc cao phản ánh hạn chế khi dự đoán GPU flagship.}
+    \label{fig:scatter_pred}
+\end{figure}
+
+Hình~\ref{fig:scatter_pred} cho thấy phần lớn các điểm tập trung sát đường $\hat{y} = y$ ở vùng giá dưới \$1.000. Ở phân khúc GPU flagship ($> \$2.000$), mô hình có xu hướng \textit{dự đoán thấp hơn thực tế} --- điều này hợp lý vì giá của nhóm sản phẩm cao cấp chịu ảnh hưởng bởi nhiều yếu tố ngoài thông số kỹ thuật (khan hiếm, chiến lược marketing, nhu cầu AI/deep learning).
+
+\subsubsection{Kiểm định giả định và chẩn đoán mô hình}
+
+Mô hình hồi quy OLS yêu cầu ba giả định chính: không đa cộng tuyến, phần dư phân phối chuẩn, và phương sai sai số đồng nhất.
+
+\textbf{Đa cộng tuyến (VIF):} Tất cả biến đều có VIF $< 3{,}0$ (cao nhất: \texttt{release\_year} $= 2{,}99$), xác nhận không có đa cộng tuyến nghiêm trọng trong mô hình chính thức.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/diagnostic_residuals.png}
+    \caption{Biểu đồ chẩn đoán phần dư mô hình Log-Linear. Panel trái: phần dư vs. giá trị ước lượng --- đường LOWESS gần nằm ngang quanh 0, cho thấy quan hệ tuyến tính phù hợp. Panel phải: Q-Q plot --- phần lớn điểm nằm trên đường chuẩn, chỉ lệch nhẹ ở hai đuôi.}
+    \label{fig:diagnostic}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth]{figures/residual_histogram.png}
+    \caption{Histogram phần dư so với đường cong phân phối chuẩn lý tưởng. Phần dư có dạng gần chuẩn với hai đuôi hơi dày --- cải thiện đáng kể so với mô hình OLS trên giá gốc ($W$ tăng từ $0{,}239$ lên $0{,}948$).}
+    \label{fig:resid_hist}
+\end{figure}
+
+\textbf{Phân phối chuẩn phần dư} (Shapiro-Wilk): $W = 0{,}948$, $p = 4{,}056 \times 10^{-13}$. Dù p-value nhỏ (vẫn bác bỏ $H_0$ chuẩn tuyệt đối), giá trị $W$ rất cao ($0{,}948 \approx 1$) cho thấy phần dư \textit{gần chuẩn} --- đặc biệt khi so với mô hình OLS ($W = 0{,}239$). Hình~\ref{fig:diagnostic} (Q-Q plot) và Hình~\ref{fig:resid_hist} xác nhận trực quan: phần dư chỉ lệch nhẹ ở hai đuôi cực trị. Với $n = 556$, Định lý Giới hạn Trung tâm (CLT) đảm bảo suy diễn thống kê vẫn hợp lệ.
+
+\textbf{Phương sai sai số} (Breusch-Pagan): $BP = 99{,}04$, $p < 2{,}2 \times 10^{-16}$ --- phương sai chưa hoàn toàn đồng đều. Đây là hạn chế chính còn lại, có thể khắc phục bằng Weighted Least Squares hoặc Robust Standard Errors (\texttt{vcovHC()}) trong nghiên cứu mở rộng.
+
+\textbf{Tổng kết:} Mô hình Log-Linear cải thiện vượt bậc so với OLS gốc --- $R^2$ tăng từ $29{,}8\%$ lên $78{,}5\%$, $W$-statistic tăng từ $0{,}239$ lên $0{,}948$, và tất cả biến đều trở nên có ý nghĩa. Mô hình đủ tin cậy để rút ra các kết luận nghiên cứu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

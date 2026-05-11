@@ -1,0 +1,100 @@
+\documentclass[a4paper]{article}
+\usepackage[fontsize=12pt]{fontsize}
+\usepackage[english,vietnamese]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+% Fix lỗi babelnullhyphen khi font không có hyphen (hyphenchar = -1)
+\makeatletter
+\def\babelnullhyphen{\ifnum\hyphenchar\font<\z@\else\char\hyphenchar\font\fi}
+\makeatother
+
+\usepackage{a4wide,amssymb,latexsym,multicol,array,hhline,fancyhdr}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{lastpage}
+\usepackage[lined,boxed,commentsnumbered]{algorithm2e}
+\usepackage{enumerate}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{tabularx, caption}
+\captionsetup{labelfont=bf,textfont=bf,justification=centering}
+\usepackage{multirow}
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{rotating}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{tikz}
+\usepackage{minted}
+\usemintedstyle{colorful}
+\setminted{
+    fontsize=\small,
+    breaklines=true,
+    frame=lines,
+    framesep=2mm,
+    baselinestretch=1.2,
+    linenos=true
+}
+
+% Định nghĩa style cho console output dùng minted
+\newminted[rconsole]{text}{
+    bgcolor=consolebg,
+    fontsize=\scriptsize,
+    breaklines=true,
+    frame=single,
+    rulecolor=lightgray
+}
+
+\definecolor{consolebg}{rgb}{0.96, 0.97, 0.98}
+
+\usetikzlibrary{arrows,snakes,backgrounds,shapes,fit,positioning,calc}
+\usepackage{hyperref}
+\hypersetup{urlcolor=blue,linkcolor=black,citecolor=black,colorlinks=true}
+
+\newtheorem{theorem}{{\bf Định lý}}
+\newtheorem{property}{{\bf Tính chất}}
+\newtheorem{proposition}{{\bf Mệnh đề}}
+\newtheorem{corollary}[proposition]{{\bf Hệ quả}}
+\newtheorem{lemma}[proposition]{{\bf Bổ đề}}
+
+
+\usepackage{fancyhdr}
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[L]{
+	\begin{tabular}{rl}
+		\begin{picture}(25,25)(0,0)
+			\put(0,-8){\includegraphics[width=10mm, height=10mm]{hcmut.png}}
+		\end{picture}&
+		\begin{tabular}{l}
+			\textbf{\bf \ttfamily Trường Đại Học Bách Khoa Tp.Hồ Chí Minh}\\
+			\textbf{\bf \ttfamily Khoa Khoa học \& Kỹ thuật Máy tính}
+		\end{tabular} 	
+	\end{tabular}
+}
+\fancyhead[R]{
+	\begin{tabular}{l}
+		\tiny \bf \\
+		\tiny \bf 
+\end{tabular}  }
+\fancyfoot{}
+\fancyfoot[L]{\scriptsize \ttfamily Bài tập lớn môn Xác Suất Thống Kê - Niên khóa 2025-2026}
+\fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+
+%%%
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\makeatletter
+\newcounter {subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection .\@alph\c@subsubsubsection}
+\newcommand\subsubsubsection{\@startsection{subsubsubsection}{4}{\z@}%
+	{-3.25ex\@plus -1ex \@minus -.2ex}%
+	{1.5ex \@plus .2ex}%
+	{\normalfont\normalsize\bfseries}}
+\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*{\subsubsubsectionmark}[1]{}
+\makeatother

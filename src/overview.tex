@@ -1,0 +1,18 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tổng quan đề tài}
+
+Đề tài sử dụng bộ dữ liệu \textbf{All\_GPUs.csv} từ tập \textit{``Computer Parts (CPUs and GPUs)''} của tác giả Iliasse Kkaf trên Kaggle, chứa thông số kỹ thuật chi tiết của hơn 3.400 card đồ họa (GPU) từ các nhà sản xuất NVIDIA, AMD và Intel qua nhiều thế hệ sản phẩm. Bộ dữ liệu thô gồm 34 thuộc tính.
+
+Báo cáo hướng đến hai mục tiêu chính:
+\begin{itemize}
+	\item \textbf{Thứ nhất}, xây dựng mô hình hồi quy tuyến tính bội (Multiple Linear Regression) để định lượng tác động của từng thông số kỹ thuật lên giá phát hành GPU, với phương trình tổng quát 
+	\begin{equation*}
+		Y = \beta_0 + \beta_1 X_1 + \cdots + \beta_k X_k + \varepsilon
+	\end{equation*}
+	Trong đó $Y$ là giá phát hành, các $X_i$ là thông số kỹ thuật và $\varepsilon$ là sai số ngẫu nhiên. Mô hình sẽ được tinh chỉnh (bao gồm biến đổi logarit nếu cần) nhằm thỏa mãn các giả định thống kê và tối ưu khả năng giải thích ($R^2$).
+	\item \textbf{Thứ hai}, áp dụng phân tích phương sai một chiều (ANOVA) để kiểm định xem có sự khác biệt có ý nghĩa thống kê về giá trung bình giữa GPU của NVIDIA và AMD hay không.
+\end{itemize}
+
+Sau khi hoàn thành, nhóm kỳ vọng đạt được: (i) mô hình hồi quy dạng $\log(\hat{Y}) = \beta_0 + \beta_1 X_1 + \cdots + \beta_k X_k$ có khả năng dự đoán giá GPU với $R^2 \geq 70\%$, đồng thời cho phép so sánh tầm quan trọng tương đối của từng thông số; (ii) xác định được các yếu tố định giá chủ đạo, kỳ vọng TDP, dung lượng bộ nhớ và hãng sản xuất có tác động mạnh nhất; (iii) bằng chứng thống kê về mức chênh lệch giá giữa NVIDIA và AMD thông qua kiểm định ANOVA; và (iv) cơ sở thực tiễn giúp người mua đánh giá mức giá GPU có hợp lý so với thông số kỹ thuật của nó hay không.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
