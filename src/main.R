@@ -74,36 +74,48 @@ legend("bottomright",
 dev.off()
 cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
 
-# BƯỚC 2: CHỌN LỌC CỘT VÀ ÉP KIỂU DỮ LIỆU
+# BƯỚC 2: CHỌN LỌC, ĐỔI TÊN VÀ ÉP KIỂU DỮ LIỆU
 
-# Chọn lọc 8 biến chính và đổi tên cho giống mô tả trong lý thuyết
+# --- 2.1: Chọn cột và đổi tên ---
 df <- raw_data %>%
-  select(Release_Price, Max_Power, Memory, Memory_Bus, Core_Speed, Release_Date, Manufacturer, Memory_Type, Memory_Speed) %>%
+  select(Release_Price, Max_Power, Memory, Memory_Bus,
+         Core_Speed, Release_Date, Manufacturer, Memory_Type) %>%
   rename(
-    release_price = Release_Price,
-    tdp = Max_Power,
-    memory_size = Memory,
-    memory_bus = Memory_Bus,
-    core_speed = Core_Speed,
-    release_date = Release_Date,
-    manufacturer = Manufacturer,
-    memory_type = Memory_Type,
+    release_price = Release_Price, tdp          = Max_Power,
+    memory_size   = Memory,        memory_bus   = Memory_Bus,
+    core_speed    = Core_Speed,    release_date = Release_Date,
+    manufacturer  = Manufacturer,  memory_type  = Memory_Type
   )
 
-# Xử lý chuỗi, ép kiểu số và gộp nhãn ATI -> AMD
+# --- 2.2: Gộp nhãn ATI -> AMD ---
 df <- df %>%
   mutate(
-    # Gộp ATI vào AMD trước khi thực hiện các bước khác
-    manufacturer = ifelse(str_trim(manufacturer) == "ATI", "AMD", str_trim(manufacturer)),
-        release_price = as.numeric(str_extract(release_price, "\\d+\\.?\\d*")),
-    tdp = as.numeric(str_extract(tdp, "\\d+\\.?\\d*")),
-    memory_size = as.numeric(str_extract(memory_size, "\\d+\\.?\\d*")),
-    memory_bus = as.numeric(str_extract(memory_bus, "\\d+\\.?\\d*")),
-    core_speed = as.numeric(str_extract(core_speed, "\\d+\\.?\\d*")),
-        release_date = str_trim(release_date),
-    release_year = as.integer(format(as.Date(release_date, format="%d-%b-%Y"), "%Y"))
+    manufacturer = ifelse(str_trim(manufacturer) == "ATI", "AMD",
+                          str_trim(manufacturer))
+  )
+cat("\n--- 2.2: Kiểm tra nhãn manufacturer sau khi gộp ATI -> AMD ---\n")
+print(table(df$manufacturer))
+
+# --- 2.3: Trích xuất số từ chuỗi có đơn vị ---
+df <- df %>%
+  mutate(
+    release_price = as.numeric(str_extract(release_price, "\\d+\\.?\\d*")),
+    tdp           = as.numeric(str_extract(tdp,           "\\d+\\.?\\d*")),
+    memory_size   = as.numeric(str_extract(memory_size,   "\\d+\\.?\\d*")),
+    memory_bus    = as.numeric(str_extract(memory_bus,    "\\d+\\.?\\d*")),
+    core_speed    = as.numeric(str_extract(core_speed,    "\\d+\\.?\\d*"))
+  )
+
+# --- 2.4: Parse chuỗi ngày tháng -> năm ---
+df <- df %>%
+  mutate(
+    release_year = as.integer(
+      format(as.Date(str_trim(release_date), "%d-%b-%Y"), "%Y"))
   ) %>%
-  select(-release_date) 
+  select(-release_date)
+
+cat("\n--- 2: Cấu trúc df sau khi hoàn thành Bước 2 ---\n")
+str(df)
 
 # BƯỚC 3 & 4: XỬ LÝ NGOẠI LỆ, LOẠI BỎ INTEL VÀ GIÁ TRỊ KHUYẾT
 # 4.1: Lọc dữ liệu trước 
@@ -153,14 +165,17 @@ get_mode <- function(v) {
 # 4.2 & 4.3 Điền khuyết 
 df_clean <- df_clean %>%
   mutate(
-    # Điền NA bằng Median cho biến số liên tục
+    # Biến số liên tục: điền Median (bền vững với phân phối lệch phải)
     tdp = ifelse(is.na(tdp), median(tdp, na.rm = TRUE), tdp),
-    memory_size = ifelse(is.na(memory_size), median(memory_size, na.rm = TRUE), memory_size),
-    memory_bus = ifelse(is.na(memory_bus), median(memory_bus, na.rm = TRUE), memory_bus),
     core_speed = ifelse(is.na(core_speed), median(core_speed, na.rm = TRUE), core_speed),
     release_year = ifelse(is.na(release_year), median(release_year, na.rm = TRUE), release_year),
-    
-    # Điền NA bằng Mode cho biến phân loại
+
+    # Biến số rời rạc: điền Mode để đảm bảo giá trị điền vào là chuẩn phần cứng thực tế
+    # (median của số chẵn quan sát có thể cho ra giá trị trung gian không tồn tại, vd: 320 bit)
+    memory_size = ifelse(is.na(memory_size), get_mode(memory_size), memory_size),
+    memory_bus = ifelse(is.na(memory_bus), get_mode(memory_bus), memory_bus),
+
+    # Biến phân loại: điền Mode
     memory_type = ifelse(is.na(memory_type) | memory_type == "", get_mode(memory_type), memory_type),
     manufacturer = ifelse(is.na(as.character(manufacturer)) | as.character(manufacturer) == "",
                           get_mode(as.character(manufacturer)), as.character(manufacturer))
