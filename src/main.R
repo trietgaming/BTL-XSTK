@@ -40,6 +40,13 @@ missing_count <- sapply(raw_data, function(col) {
 })
 missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
 
+# Tầng 3: xác định biến bị loại do tỷ lệ khuyết >= 30%
+# Bỏ qua biến phụ thuộc (Y) Release_Price vì dòng chứa NA sẽ bị xóa ở bước sau
+dropped_high_missing <- names(missing_pct[missing_pct >= 30 & names(missing_pct) != "Release_Price"])
+cat("\n--- Biến có tỷ lệ khuyết >= 30% (tầng 3) ---\n")
+cat(paste(dropped_high_missing, collapse = ", "), "\n")
+
+# Bắt buộc giữ Y và 7 biến X còn lại sau khi trừ đi các biến ở tầng 1, 2
 kept_vars <- c("Release_Price", "Max_Power", "Memory", "Memory_Bus",
                "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type")
 
@@ -142,16 +149,10 @@ calc_tukey <- function(vec) {
 }
 
 price_bnd  <- calc_tukey(df$release_price)
-tdp_bnd    <- calc_tukey(df$tdp)
-cspeed_bnd <- calc_tukey(df$core_speed)
 
-cat(sprintf("\n--- Ranh giới Tukey (tập thô N=%d) ---\n", nrow(df)))
+cat(sprintf("\n--- Ranh giới Tukey release_price (tập thô N=%d) ---\n", nrow(df)))
 cat(sprintf("release_price: Q1=%.0f,  Q3=%.0f,  IQR=%.0f,  Ngưỡng trên=%.2f\n",
             price_bnd$q1,  price_bnd$q3,  price_bnd$iqr,  price_bnd$upper))
-cat(sprintf("tdp:           Q1=%.1f, Q3=%.1f, IQR=%.1f, Ngưỡng trên=%.2f\n",
-            tdp_bnd$q1,    tdp_bnd$q3,    tdp_bnd$iqr,    tdp_bnd$upper))
-cat(sprintf("core_speed:    Q1=%.0f, Q3=%.0f, IQR=%.0f, Ngưỡng trên=%.2f\n",
-            cspeed_bnd$q1, cspeed_bnd$q3, cspeed_bnd$iqr, cspeed_bnd$upper))
 
 # BƯỚC 4: LOẠI BỎ QUAN SÁT KHÔNG HỢP LỆ VÀ ĐIỀN GIÁ TRỊ KHUYẾT
 
@@ -160,9 +161,7 @@ n_has_price_no_intel <- nrow(df %>% filter(!is.na(release_price), manufacturer !
 df_clean <- df %>%
   filter(!is.na(release_price)) %>%
   filter(manufacturer != "Intel") %>%
-  filter(release_price <= price_bnd$upper) %>%
-  filter(is.na(tdp)        | tdp        <= tdp_bnd$upper) %>%
-  filter(is.na(core_speed) | core_speed <= cspeed_bnd$upper)
+  filter(release_price <= price_bnd$upper)
 
 cat(sprintf("\n=> Số quan sát ban đầu (có giá, không Intel): %d\n", n_has_price_no_intel))
 cat(sprintf("=> Sau khi loại tất cả ngoại lệ IQR: %d (đã loại %d quan sát)\n",
@@ -171,12 +170,13 @@ cat(sprintf("=> Sau khi loại tất cả ngoại lệ IQR: %d (đã loại %d q
 df_clean$manufacturer <- factor(df_clean$manufacturer)
 N_clean <- nrow(df_clean)
 
-# 3.2: Boxplot kiểm tra sau khi lọc (xác nhận không còn ngoại lệ)
+# 3.2: Boxplot trực quan hóa ranh giới ngoại lai trên tập thô
 png("figures/boxplot_outliers.png", type="cairo", width=900, height=400, res=120)
 par(mfrow=c(1,3))
-boxplot(df_clean$release_price, main=sprintf("Giá (N=%d)", N_clean), col="lightblue", ylab="USD")
-boxplot(df_clean$tdp,           main=sprintf("TDP (N=%d)", N_clean), col="lightgreen", ylab="Watts")
-boxplot(df_clean$core_speed,    main=sprintf("Core Speed (N=%d)", N_clean), col="salmon", ylab="MHz")
+boxplot(df$release_price, main="Giá (Tập thô, Log-scale)", col="lightblue", ylab="USD (log scale)", log="y")
+abline(h = price_bnd$upper, col="red", lty=2, lwd=2) # Vẽ ranh giới Tukey
+boxplot(df$tdp,           main="TDP (Tập thô)", col="lightgreen", ylab="Watts")
+boxplot(df$core_speed,    main="Core Speed (Tập thô)", col="salmon", ylab="MHz")
 par(mfrow=c(1,1))
 dev.off()
 # Hàm tự tạo để tìm Mode 
@@ -451,7 +451,7 @@ boxplot(release_price ~ manufacturer, data = df_final_clean,
 
 # Thêm mean marker
 amd_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "AMD"])
-nv_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "NVIDIA"])
+nv_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "Nvidia"])
 points(1, amd_mean, pch = 18, col = "yellow", cex = 2)
 points(2, nv_mean, pch = 18, col = "yellow", cex = 2)
 legend("topright",
@@ -527,9 +527,7 @@ cat("--- Đã xuất figures/residual_histogram.png ---\n")
 
 # 7.2. PHÂN TÍCH PHƯƠNG SAI (WELCH'S ANOVA) - CẬP NHẬT FINAL
 
-# 1. Kiểm định tính đồng nhất phương sai (Levene's Test)
-cat("\n--- 1. KIỂM ĐỊNH ĐỒNG NHẤT PHƯƠNG SAI (Levene's Test) ---\n")
-print(leveneTest(release_price ~ manufacturer, data = df_final_clean))
+
 
 # 2. Thực hiện Welch's ANOVA
 cat("\n--- 2. KẾT QUẢ KIỂM ĐỊNH WELCH'S ANOVA ---\n")
@@ -543,7 +541,7 @@ cat("Kết quả ANOVA này về mặt toán học tương đương với Welch'
 cat("\n===== THỐNG KÊ CHO LATEX =====\n")
 cat(sprintf("N_total = %d\n", N_final))
 amd_data  <- df_final_clean$release_price[df_final_clean$manufacturer == "AMD"]
-nv_data   <- df_final_clean$release_price[df_final_clean$manufacturer == "NVIDIA"]
+nv_data   <- df_final_clean$release_price[df_final_clean$manufacturer == "Nvidia"]
 cat(sprintf("AMD:    n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
             length(amd_data), mean(amd_data), median(amd_data), sd(amd_data)))
 cat(sprintf("NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
