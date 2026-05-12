@@ -7,7 +7,7 @@ Phần này trình bày các phát hiện chính theo hai hướng nghiên cứu
 
 \subsection{Phân phối giá GPU và định hướng tối ưu hóa mô hình}
 
-Trên tập dữ liệu thuần Consumer/Prosumer ban đầu ($N = 523$), phân phối giá phát hành đã cải thiện đáng kể so với dữ liệu thô. Tuy nhiên, sau khi thực hiện chẩn đoán mô hình sơ bộ (xem Phần~\ref{sec:chan_doan}), nhóm phát hiện thêm 9 quan sát có cấu trúc định giá dị biệt (như card Crossfire kép, card độ tản nhiệt nước, dòng Quadro lọt lưới). Việc loại bỏ 9 quan sát này đưa tập dữ liệu nghiên cứu chính thức về \textbf{$N = 514$}.
+Trên tập dữ liệu thuần Consumer/Prosumer ban đầu ($N = 523$), phân phối giá phát hành đã cải thiện đáng kể so với dữ liệu thô. Tuy nhiên, khi phân tích phần dư chuẩn hóa của mô hình cơ sở (xem Bước~7.1.3 tại Phần~\ref{sec:buoc_7_xay_dung_mo_hinh}), nhóm phát hiện thêm 9 quan sát có cấu trúc định giá dị biệt (như card Crossfire kép, card tản nhiệt nước Hydro Copper, dòng Quadro lọt lưới). Việc loại bỏ 9 quan sát này đưa tập dữ liệu nghiên cứu chính thức về \textbf{$N = 514$}.
 
 Trong đặc thù định giá sản phẩm công nghệ, các yếu tố kỹ thuật thường tác động lên giá theo tỷ lệ phần trăm (multiplicative) thay vì cộng gộp tuyệt đối (additive).
 

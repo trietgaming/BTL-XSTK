@@ -29,7 +29,7 @@ Dữ liệu phần cứng GPU mang một số đặc thù quan trọng cần lư
 
 \subsection{Thu hẹp không gian đặc trưng}
 
-Đưa toàn bộ 34 thuộc tính vào mô hình không những không cải thiện khả năng dự đoán mà còn làm giảm chất lượng: biến trùng lặp gây đa cộng tuyến (hệ số $\hat{\beta}$ không ổn định), biến không liên quan thêm nhiễu và tăng phương sai ước lượng. Nhóm giải quyết vấn đề này bằng quy trình sàng lọc \textbf{ba tầng khách quan} --- mỗi tầng nhắm đến một nguồn nhiễu hoàn toàn khác nhau:
+Đưa toàn bộ 34 thuộc tính vào mô hình không những không cải thiện khả năng dự đoán mà còn làm giảm chất lượng: biến trùng lặp gây đa cộng tuyến, biến không liên quan thêm nhiễu và tăng phương sai ước lượng. Nhóm giải quyết vấn đề này bằng quy trình sàng lọc \textbf{ba tầng khách quan} --- mỗi tầng nhắm đến một nguồn nhiễu hoàn toàn khác nhau:
 
 \begin{figure}[H]
 \centering
@@ -232,16 +232,22 @@ Bảy biến độc lập được xử lý theo ba nhóm (Bảng~\ref{tab:var_e
 \endlastfoot
 \texttt{Max\_Power}, \texttt{Core\_Speed}     & Liên tục  & Z-score \\
 \texttt{Memory\_Bus}, \texttt{Memory}         & Rời rạc   & Z-score \\
-\texttt{Release\_Date} (đã trích năm)         & Liên tục  & Giữ nguyên \\
+\texttt{Release\_Date}                        & Rời rạc  & Trích xuất năm (giữ nguyên số) \\
 \texttt{Manufacturer}, \texttt{Memory\_Type}  & Phân loại & \texttt{factor()} \\
 \hline
 \end{longtable}
 
 \textbf{Bốn biến số} có thang đo hoàn toàn khác nhau (Watts, MHz, bit, GB) nên được chuẩn hóa Z-score $z_i = (x_i - \bar{x})/s$ về cùng đơn vị ``độ lệch chuẩn'', cho phép so sánh trực tiếp độ lớn hệ số $\hat{\beta}$ trong mô hình log-linear. Việc xử lý Z-score cho \texttt{Memory\_Bus} và \texttt{Memory} vẫn hợp lệ do tính chất thứ tự có nhiều mức phân biệt của chúng, đảm bảo quan hệ tuyến tính vẫn xấp xỉ tốt trong hồi quy.
 
-Thông số năm trích xuất từ \texttt{Release\_Date} được giữ nguyên giá trị năm gốc (2000--2023). Trong mô hình log-linear, hệ số của nó đọc được là ``mỗi năm trôi qua, giá GPU thay đổi $\approx (e^{\hat{\beta}} - 1) \times 100\%$'' --- một con số có ý nghĩa kinh tế trực tiếp. Nếu chuẩn hóa, hệ số sẽ ứng với ``mỗi độ lệch chuẩn của năm phát hành'', khiến việc diễn giải không còn tự nhiên.
+\texttt{Release\_Date} lưu dạng chuỗi ngày tháng (\texttt{"01-Mar-2009"}) không thể đưa trực tiếp vào hồi quy. Nhóm trích xuất phần năm thành số nguyên (2000--2023) vì chỉ thông tin \textit{năm} mới mang tín hiệu kinh tế có ý nghĩa: chu kỳ thế hệ GPU là 1--2 năm, trong khi ngày và tháng không phản ánh bất kỳ đặc trưng định giá nào.
+
+% Về bản chất, \texttt{release\_year} là biến \textbf{rời rạc} (chỉ nhận giá trị nguyên). Tuy nhiên, khác với \texttt{Memory\_Bus} hay \texttt{Memory} có khoảng cách không đều giữa các chuẩn phần cứng, các năm liên tiếp cách đều đúng 1 đơn vị và không có khoảng trống --- đây là điều kiện đủ để hồi quy tuyến tính xấp xỉ tốt quan hệ xu hướng theo thời gian.
 
 Hai biến phân loại được ép kiểu \texttt{factor()} để R sinh biến giả tự động trong \texttt{lm()}. Vì R sắp xếp levels theo alphabet, AMD trở thành nhóm tham chiếu (baseline); hệ số \texttt{Manufacturer NVIDIA} do đó đọc được là ``chênh lệch log-giá giữa NVIDIA và AMD khi kiểm soát các đặc tính kỹ thuật''.
+
+\subsubsection{Khám phá tương quan biến số (EDA)}
+
+Trước khi tiến hành xây dựng mô hình hồi quy chính thức, hệ số tương quan Pearson được phân tích như một bước Khám phá Dữ liệu (Exploratory Data Analysis). Thao tác này nhằm hai mục đích: (1) đánh giá sơ bộ chiều hướng và cường độ tác động của từng đặc tính phần cứng lên giá, và (2) nhận diện sớm các cặp biến độc lập có độ tương quan quá cao. Sự xuất hiện của các cặp biến này sẽ là tín hiệu quan trọng làm tiền đề cho bước kiểm định đa cộng tuyến chuyên sâu ở giai đoạn sau.
 
 \subsection{Xây dựng mô hình thống kê}
 
@@ -249,20 +255,22 @@ Sau khi dữ liệu đã được làm sạch và chuẩn hóa, bước tiếp t
 
 \subsubsection{Xây dựng mô hình Hồi quy Tuyến tính Bội (MLR)}
 
-Để định lượng tác động của nhiều thông số kỹ thuật cùng lúc lên giá phát hành, nhóm áp dụng chiến lược xây dựng mô hình theo hướng ``thử nghiệm và tinh chỉnh'' (trial and error). Đầu tiên, một mô hình hồi quy tuyến tính bội (MLR) cơ sở được xây dựng với biến phụ thuộc là giá gốc $Y$:
+Quy trình xây dựng mô hình gồm ba giai đoạn tuần tự, mỗi giai đoạn giải quyết một vấn đề riêng biệt trước khi chuyển sang bước tiếp theo.
+
+\textbf{Giai đoạn 1 --- Kiểm định đa cộng tuyến (VIF).} Mô hình hồi quy đầy đủ với toàn bộ $n$ biến độc lập và biến phụ thuộc là giá gốc $Y$ được xây dựng trước:
 \[
-  Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
+  Y = \beta_0 + \beta_1 X_1 + \cdots + \beta_n X_n + \varepsilon
 \]
-Mô hình này được dùng làm bước đệm để đánh giá chất lượng các biến độc lập thông qua việc kiểm tra \textbf{đa cộng tuyến} (hệ số phóng đại phương sai - VIF). Chỉ những biến đáp ứng điều kiện an toàn ($\text{VIF} < 5$) mới được giữ lại để tránh hiện tượng chồng chéo thông tin.
+Hệ số phóng đại phương sai (VIF) được tính cho từng biến. Bất kỳ biến nào có $\text{VIF} > 5$ (ngưỡng an toàn đa cộng tuyến) sẽ bị loại và mô hình được xây lại với các biến còn lại cho đến khi toàn bộ đều đạt chuẩn.
 
-Tiếp theo, để đánh giá khách quan, nhóm tiến hành kiểm định hai giả định của phương pháp OLS: phương sai sai số đồng nhất (kiểm định Breusch-Pagan) và phần dư có phân phối chuẩn (kiểm định Shapiro-Wilk) trên mô hình tuyến tính cơ sở.
+\textbf{Giai đoạn 2 --- Lọc ngoại lai phần dư.} Mô hình cơ sở sau giai đoạn 1 được dùng để tính phần dư chuẩn hóa cho từng quan sát. Các quan sát có $|\text{std.residual}| > 2{,}5$ được xem xét loại bỏ nếu kết hợp với kiến thức ngành xác nhận chúng là \textbf{ngoại lai cấu trúc} --- tức những sản phẩm có cơ chế định giá nằm ngoài quy luật thị trường mục tiêu mà mô hình không thể giải thích (ví dụ: GPU Workstation lọt lưới bộ lọc IQR, cấu hình đa chip, hoặc sản phẩm chưa phát hành chính thức). Bộ dữ liệu sau bước này là tập chính thức để xây mô hình final.
 
-Tuy nhiên, dù mô hình OLS cơ sở có đạt hay không đạt kiểm định, đặc thù của thị trường thiết bị công nghệ là mức giá thường biến động theo \textbf{tỷ lệ phần trăm} (multiplicative) thay vì cộng gộp tuyệt đối (additive). Ví dụ: việc tăng thêm 2GB VRAM sẽ có tác động về giá trên một card trị giá \$1000 hoàn toàn khác so với trên một card trị giá \$200. Do đó, để \textbf{tối ưu hóa mô hình}, nhóm chủ động áp dụng \textbf{phép biến đổi logarit tự nhiên} lên biến phụ thuộc để tạo thành mô hình Log-Linear:
+\textbf{Giai đoạn 3 --- Chuyển đổi Log-Linear.} Đặc thù định giá sản phẩm công nghệ là các yếu tố kỹ thuật tác động lên giá theo \textbf{tỷ lệ phần trăm} (multiplicative) thay vì cộng gộp tuyệt đối: việc tăng thêm 2~GB VRAM có tác động giá hoàn toàn khác trên một card \$1.000 so với card \$200. Do đó nhóm áp dụng \textbf{biến đổi logarit tự nhiên} lên biến phụ thuộc để tạo thành mô hình Log-Linear:
 \[
   \log(Y) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
 \]
 
-Việc nâng cấp lên mô hình $\log(Y)$ mang lại lợi ích kép: về mặt thống kê, nó giúp nén đuôi phải của dữ liệu (do các mẫu flagship đắt tiền tạo ra), đưa phân phối về dạng đối xứng hơn và xoa dịu các dao động phương sai. Về mặt ý nghĩa thực tiễn, các hệ số trong mô hình Log-Linear rất sắc bén và trực quan: khi một thông số $X_i$ tăng thêm 1 đơn vị (sau chuẩn hóa), giá GPU sẽ thay đổi xấp xỉ $(e^{\beta_i} - 1) \times 100\%$. Mô hình tối ưu này sẽ được sử dụng làm cơ sở để rút ra kết luận cuối cùng.
+Phép biến đổi này nén đuôi phải của phân phối giá (do các card flagship tạo ra), đưa phân phối về dạng đối xứng hơn và ổn định phương sai. Quan trọng hơn, các hệ số $\hat{\beta}_i$ lúc này mang ý nghĩa kinh tế trực tiếp: khi $X_i$ tăng 1 đơn vị (sau chuẩn hóa), giá GPU thay đổi xấp xỉ $(e^{\hat{\beta}_i} - 1) \times 100\%$. Mô hình Log-Linear này được chọn làm mô hình chính thức để rút ra kết luận.
 
 \subsubsection{Phân tích Phương sai Welch's ANOVA}
 

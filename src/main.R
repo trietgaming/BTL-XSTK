@@ -405,30 +405,30 @@ png("figures/price_distribution_compare.png", type = "cairo",
 par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
 
 # Panel trái: Phân phối giá gốc
-hist(df_final$release_price,
+hist(df_final_clean$release_price,
      breaks = 40, col = "#2c7fb8", border = "white",
      main = "Phân phối giá phát hành (USD)",
      xlab = "Giá (USD)", ylab = "Tần suất",
      cex.lab = 1.1, cex.main = 1.15)
-abline(v = median(df_final$release_price), col = "red", lwd = 2, lty = 2)
-abline(v = mean(df_final$release_price), col = "#e34a33", lwd = 2, lty = 3)
+abline(v = median(df_final_clean$release_price), col = "red", lwd = 2, lty = 2)
+abline(v = mean(df_final_clean$release_price), col = "#e34a33", lwd = 2, lty = 3)
 legend("topright",
-       legend = c(paste0("Median = $", round(median(df_final$release_price))),
-                  paste0("Mean = $", round(mean(df_final$release_price)))),
+       legend = c(paste0("Median = $", round(median(df_final_clean$release_price))),
+                  paste0("Mean = $", round(mean(df_final_clean$release_price)))),
        col = c("red", "#e34a33"), lty = c(2, 3), lwd = 2,
        cex = 0.85, bty = "n")
 
 # Panel phải: Phân phối log(giá)
-hist(log(df_final$release_price),
+hist(log(df_final_clean$release_price),
      breaks = 30, col = "#41ae76", border = "white",
      main = "Phân phối log(giá phát hành)",
      xlab = "log(Giá)", ylab = "Tần suất",
      cex.lab = 1.1, cex.main = 1.15)
-abline(v = median(log(df_final$release_price)), col = "red", lwd = 2, lty = 2)
-abline(v = mean(log(df_final$release_price)), col = "#e34a33", lwd = 2, lty = 3)
+abline(v = median(log(df_final_clean$release_price)), col = "red", lwd = 2, lty = 2)
+abline(v = mean(log(df_final_clean$release_price)), col = "#e34a33", lwd = 2, lty = 3)
 legend("topright",
-       legend = c(paste0("Median = ", round(median(log(df_final$release_price)), 2)),
-                  paste0("Mean = ", round(mean(log(df_final$release_price)), 2))),
+       legend = c(paste0("Median = ", round(median(log(df_final_clean$release_price)), 2)),
+                  paste0("Mean = ", round(mean(log(df_final_clean$release_price)), 2))),
        col = c("red", "#e34a33"), lty = c(2, 3), lwd = 2,
        cex = 0.85, bty = "n")
 
@@ -441,17 +441,17 @@ cat("\n--- 7. VẼ BOXPLOT SO SÁNH GIÁ NVIDIA vs AMD ---\n")
 png("figures/boxplot_nvidia_vs_amd.png", type = "cairo",
     width = 1400, height = 900, res = 200)
 par(mar = c(5, 5, 4, 2))
-boxplot(release_price ~ manufacturer, data = df_final,
+boxplot(release_price ~ manufacturer, data = df_final_clean,
         col = c("#e34a33", "#2c7fb8"),
-        main = sprintf("Phân phối giá phát hành theo hãng sản xuất (N = %d)", N_clean),
+        main = sprintf("Phân phối giá phát hành theo hãng sản xuất (N = %d)", N_final),
         xlab = "Hãng sản xuất",
         ylab = "Giá phát hành (USD)",
         cex.lab = 1.15, cex.main = 1.2,
         outline = TRUE, notch = TRUE)
 
 # Thêm mean marker
-amd_mean <- mean(df_final$release_price[df_final$manufacturer == "AMD"])
-nv_mean <- mean(df_final$release_price[df_final$manufacturer == "NVIDIA"])
+amd_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "AMD"])
+nv_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "NVIDIA"])
 points(1, amd_mean, pch = 18, col = "yellow", cex = 2)
 points(2, nv_mean, pch = 18, col = "yellow", cex = 2)
 legend("topright",
@@ -529,12 +529,11 @@ cat("--- Đã xuất figures/residual_histogram.png ---\n")
 
 # 1. Kiểm định tính đồng nhất phương sai (Levene's Test)
 cat("\n--- 1. KIỂM ĐỊNH ĐỒNG NHẤT PHƯƠNG SAI (Levene's Test) ---\n")
-print(leveneTest(release_price ~ manufacturer, data = df_final))
+print(leveneTest(release_price ~ manufacturer, data = df_final_clean))
 
-# 2. Thực hiện Welch's ANOVA 
-# Do vi phạm đồng nhất phương sai và mẫu lớn (N=556), dùng Welch's ANOVA là tối ưu
+# 2. Thực hiện Welch's ANOVA
 cat("\n--- 2. KẾT QUẢ KIỂM ĐỊNH WELCH'S ANOVA ---\n")
-anova_result <- oneway.test(release_price ~ manufacturer, data = df_final, var.equal = FALSE)
+anova_result <- oneway.test(release_price ~ manufacturer, data = df_final_clean, var.equal = FALSE)
 print(anova_result)
 
 cat("\nLưu ý: Không thực hiện hậu kiểm (Post-hoc) vì chỉ còn 2 nhóm NVIDIA và AMD.\n")
@@ -542,9 +541,9 @@ cat("Kết quả ANOVA này về mặt toán học tương đương với Welch'
 
 # --- IN THỐNG KÊ CHI TIẾT CHO LATEX ---
 cat("\n===== THỐNG KÊ CHO LATEX =====\n")
-cat(sprintf("N_total = %d\n", N_clean))
-amd_data  <- df_final$release_price[df_final$manufacturer == "AMD"]
-nv_data   <- df_final$release_price[df_final$manufacturer == "Nvidia"]
+cat(sprintf("N_total = %d\n", N_final))
+amd_data  <- df_final_clean$release_price[df_final_clean$manufacturer == "AMD"]
+nv_data   <- df_final_clean$release_price[df_final_clean$manufacturer == "NVIDIA"]
 cat(sprintf("AMD:    n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
             length(amd_data), mean(amd_data), median(amd_data), sd(amd_data)))
 cat(sprintf("NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
@@ -566,7 +565,7 @@ pct_effect <- (exp(coef_vals) - 1) * 100
 for (nm in names(pct_effect)) cat(sprintf("  %s: %.2f%%\n", nm, pct_effect[nm]))
 
 cat("\n--- Skewness giá gốc ---\n")
-price_vals <- df_final$release_price
+price_vals <- df_final_clean$release_price
 n_sk <- length(price_vals)
 skew_val <- (n_sk / ((n_sk-1)*(n_sk-2))) * sum(((price_vals - mean(price_vals))/sd(price_vals))^3)
 cat(sprintf("Skewness = %.4f\n", skew_val))
