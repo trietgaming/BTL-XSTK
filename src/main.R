@@ -266,7 +266,15 @@ print(colSums(is.na(df_clean)))
 cat("\n--- KIỂM TRA CẤU TRÚC BIẾN (FACTOR CHECK) ---\n")
 # str() giúp xác nhận manufacturer/memory_type đã là Factor chưa
 str(df_clean)
-# BƯỚC 6: CHUẨN HÓA DỮ LIỆU 
+# BƯỚC 6: CHUẨN HÓA DỮ LIỆU
+
+# Lưu tham số chuẩn hóa từ df_clean để dùng cho dự đoán out-of-sample
+scale_params <- list(
+  tdp         = c(mean = mean(df_clean$tdp),         sd = sd(df_clean$tdp)),
+  memory_size = c(mean = mean(df_clean$memory_size), sd = sd(df_clean$memory_size)),
+  memory_bus  = c(mean = mean(df_clean$memory_bus),  sd = sd(df_clean$memory_bus)),
+  core_speed  = c(mean = mean(df_clean$core_speed),  sd = sd(df_clean$core_speed))
+)
 
 df_final <- df_clean %>%
   mutate(
@@ -323,8 +331,8 @@ print(vif(mlr_model_base))
 # --- 7.1.3: Lọc ngoại lai cấu trúc từ phần dư mô hình cơ sở ---
 cat("\n--- 7.1.3. LỌC NGOẠI LAI CẤU TRÚC (Standardized Residuals) ---\n")
 std_res_base <- rstandard(mlr_model_base)
-outlier_mask <- abs(std_res_base) > 2.5 &
-  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|not[ .]released",
+outlier_mask <- abs(std_res_base) > 2.0 &
+  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|Hybrid|not[ .]released",
         df_final$name, perl = TRUE)
 n_structural <- sum(outlier_mask)
 cat(sprintf("=> Phát hiện %d ngoại lai cấu trúc (Quadro/Crossfire/Hydro Copper/not released).\n",
@@ -334,6 +342,10 @@ df_final_clean <- df_final[!outlier_mask, ]
 N_final <- nrow(df_final_clean)
 cat(sprintf("=> Tập dữ liệu chính thức: N = %d (loại %d quan sát)\n",
             N_final, N_clean - N_final))
+
+# Mô hình OLS sạch trên df_final_clean (dùng cho dự đoán out-of-sample)
+mlr_model_clean <- lm(release_price ~ tdp + memory_size + memory_bus +
+                        core_speed + manufacturer + release_year, data = df_final_clean)
 
 cat("\n--- 7.1.4. MÔ HÌNH LOG-LINEAR CHÍNH THỨC (N = ", N_final, ") ---\n", sep="")
 log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
@@ -436,32 +448,7 @@ par(mfrow = c(1, 1))
 dev.off()
 cat("--- Đã xuất figures/price_distribution_compare.png ---\n")
 
-# --- BOXPLOT SO SÁNH GIÁ NVIDIA vs AMD ---
-cat("\n--- 7. VẼ BOXPLOT SO SÁNH GIÁ NVIDIA vs AMD ---\n")
-png("figures/boxplot_nvidia_vs_amd.png", type = "cairo",
-    width = 1400, height = 900, res = 200)
-par(mar = c(5, 5, 4, 2))
-boxplot(release_price ~ manufacturer, data = df_final_clean,
-        col = c("#e34a33", "#2c7fb8"),
-        main = sprintf("Phân phối giá phát hành theo hãng sản xuất (N = %d)", N_final),
-        xlab = "Hãng sản xuất",
-        ylab = "Giá phát hành (USD)",
-        cex.lab = 1.15, cex.main = 1.2,
-        outline = TRUE, notch = TRUE)
 
-# Thêm mean marker
-amd_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "AMD"])
-nv_mean <- mean(df_final_clean$release_price[df_final_clean$manufacturer == "Nvidia"])
-points(1, amd_mean, pch = 18, col = "yellow", cex = 2)
-points(2, nv_mean, pch = 18, col = "yellow", cex = 2)
-legend("topright",
-       legend = c(paste0("Mean AMD = $", round(amd_mean)),
-                  paste0("Mean NVIDIA = $", round(nv_mean)),
-                  "Notch = 95% CI of Median"),
-       pch = c(18, 18, NA), col = c("yellow", "yellow", NA),
-       cex = 0.85, bty = "n")
-dev.off()
-cat("--- Đã xuất figures/boxplot_nvidia_vs_amd.png ---\n")
 
 # --- BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ (Coefficient Importance) ---
 cat("\n--- 8. VẼ BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ ---\n")
@@ -568,3 +555,56 @@ n_sk <- length(price_vals)
 skew_val <- (n_sk / ((n_sk-1)*(n_sk-2))) * sum(((price_vals - mean(price_vals))/sd(price_vals))^3)
 cat(sprintf("Skewness = %.4f\n", skew_val))
 cat("===== KẾT THÚC THỐNG KÊ =====\n")
+
+# ==========================================================
+# DỰ ĐOÁN OUT-OF-SAMPLE: 5 GPU ĐỜI MỚI (2019-2021)
+# ==========================================================
+cat("\n===== DỰ ĐOÁN OUT-OF-SAMPLE (GPU ĐỜI MỚI) =====\n")
+
+# Hàm chuẩn hóa dùng tham số từ tập huấn luyện
+std_new <- function(x, param) (x - param["mean"]) / param["sd"]
+
+# Thông số kỹ thuật thực tế (raw, chưa chuẩn hóa)
+new_gpus_raw <- data.frame(
+  name         = c("GTX 1650 (2019)", "GTX 1660 (2019)", "RX 5500 XT (2019)", "RX 6600 XT (2021)", "RTX 3060 (2021)"),
+  msrp         = c(149,   219,   199,   379,   329),
+  tdp          = c(75,    120,   130,   160,   170),
+  memory_size  = c(4096,  6144,  8192,  8192,  12288),
+  memory_bus   = c(128,   192,   128,   128,   192),
+  core_speed   = c(1485,  1530,  1607,  1968,  1320),
+  manufacturer = c("Nvidia","Nvidia","AMD","AMD","Nvidia"),
+  release_year = c(2019,  2019,  2019,  2021,  2021),
+  stringsAsFactors = FALSE
+)
+
+# Chuẩn hóa Z-score dùng tham số training
+new_gpus_scaled <- new_gpus_raw %>%
+  mutate(
+    tdp         = std_new(tdp,         scale_params$tdp),
+    memory_size = std_new(memory_size, scale_params$memory_size),
+    memory_bus  = std_new(memory_bus,  scale_params$memory_bus),
+    core_speed  = std_new(core_speed,  scale_params$core_speed),
+    manufacturer = factor(manufacturer, levels = levels(df_final_clean$manufacturer))
+  )
+
+# Dự đoán Log-Linear (khoảng tin cậy 95%)
+log_pred_new <- predict(log_model_final, newdata = new_gpus_scaled,
+                        interval = "prediction", level = 0.95)
+pred_log_usd <- exp(log_pred_new)
+
+# Dự đoán OLS sạch
+ols_pred_new <- predict(mlr_model_clean, newdata = new_gpus_scaled)
+
+# Tổng hợp kết quả
+out_sample_results <- data.frame(
+  Name         = new_gpus_raw$name,
+  MSRP         = new_gpus_raw$msrp,
+  OLS_Sach     = round(ols_pred_new, 2),
+  OLS_Pct      = round((ols_pred_new - new_gpus_raw$msrp) / new_gpus_raw$msrp * 100),
+  Log_Pred     = round(pred_log_usd[, "fit"], 2),
+  Log_Pct      = round((pred_log_usd[, "fit"] - new_gpus_raw$msrp) / new_gpus_raw$msrp * 100),
+  CI_Lower     = round(pred_log_usd[, "lwr"], 2),
+  CI_Upper     = round(pred_log_usd[, "upr"], 2)
+)
+print(out_sample_results)
+cat("===== KẾT THÚC DỰ ĐOÁN OUT-OF-SAMPLE =====\n")

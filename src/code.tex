@@ -78,7 +78,7 @@ Chi tiết 8 biến sẽ được sử dụng trong mô hình:
 \hline
 \endlastfoot
 \texttt{Manufacturer} & Nominal & Hãng sản xuất (NVIDIA, AMD) & Độc lập (phân loại) \\
-\texttt{Memory\_Type} & Nominal & Chuẩn VRAM (GDDR5, GDDR3, DDR3, HBM\ldots) & Loại bỏ (VIF $= 8{,}12$) \\
+\texttt{Memory\_Type} & Nominal & Chuẩn VRAM (GDDR5, GDDR3, DDR3, HBM\ldots) & Loại bỏ (VIF $= 6{,}58$) \\
 \texttt{Memory\_Bus} & Rời rạc & Băng thông bộ nhớ (bit) & Độc lập (số) \\
 \texttt{Memory} & Rời rạc & Dung lượng VRAM (GB/MB) & Độc lập (số) \\
 \texttt{Max\_Power} & Liên tục & Công suất tiêu thụ (Watt) & Độc lập (số) \\
@@ -134,8 +134,8 @@ df <- df %>%
 Kết quả kiểm tra sau khi gộp:
 \begin{rconsole}
 > table(df$manufacturer)
-  AMD Intel NVIDIA
- 1409     4   1743
+ AMD Intel Nvidia
+1409   254   1743
 \end{rconsole}
 
 Ta thấy toàn bộ card ATI đã được gán vào nhóm AMD.
@@ -198,7 +198,7 @@ Tất cả 5 biến số đã ở kiểu \texttt{num}/\texttt{int}; các chuỗi
 \subsection{Bước 3: Nhận diện ngoại lai (IQR trên tập gốc)}
 \label{sec:buoc_3_ngoai_lai}
 
-Theo nguyên tắc đã trình bày ở Section~\ref{sec:co_so_ly_thuyet} (Phần 2), ranh giới IQR phải được tính \textbf{trước khi lọc hay điền khuyết}. Nhóm tính ngưỡng Tukey trên tập thô rồi đưa trực tiếp vào bộ lọc Bước~\ref{sec:buoc_4_dien_khuyết}:
+Theo nguyên tắc đã trình bày ở Phần~\ref{sec:co_so_ly_thuyet}, ranh giới IQR phải được tính \textbf{trước khi lọc hay điền khuyết}. Nhóm tính ngưỡng Tukey trên tập thô rồi đưa trực tiếp vào bộ lọc Bước~\ref{sec:buoc_4_dien_khuyết}:
 
 \begin{minted}{R}
 # Tính ngưỡng Tukey cho release_price trên tập thô (N = 3.406)
@@ -215,7 +215,7 @@ count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
 }
 \end{minted}
 
-Ngưỡng trên của \texttt{release\_price} tính được là \$814. Toàn bộ 33 quan sát vượt ngưỡng này đều thuộc phân khúc Workstation/Enterprise (lý do loại bỏ tại Section~\ref{sec:co_so_ly_thuyet}). Kết quả được trực quan hóa qua Hình~\ref{fig:boxplot_outliers}.
+Ngưỡng trên của \texttt{release\_price} tính được là \$814. Toàn bộ 33 quan sát vượt ngưỡng này đều thuộc phân khúc Workstation/Enterprise (lý do loại bỏ tại Phần~\ref{sec:co_so_ly_thuyet}). Kết quả được trực quan hóa qua Hình~\ref{fig:boxplot_outliers}.
 
 \begin{figure}[H]
     \centering
@@ -238,7 +238,7 @@ df_clean <- df %>%
   filter(release_price <= price_upper)      # Loại outliers
 \end{minted}
 
-Kết quả: Loại bỏ 2.846 dòng thiếu \texttt{release\_price}, 4 dòng Intel, và 33 Outliers có giá $> \$814$ (ngưỡng Tukey từ Bước~\ref{sec:buoc_3_ngoai_lai}). Tập phân tích còn \textbf{523 quan sát}.
+Kết quả: Loại bỏ 2.846 dòng thiếu \texttt{release\_price} và 33 Outliers có giá $> \$814$ (ngưỡng Tukey từ Bước~\ref{sec:buoc_3_ngoai_lai}). Tập phân tích còn \textbf{523 quan sát}.
 
 \subsubsection*{4.2. Điền khuyết theo vai trò biến}
 
@@ -349,17 +349,17 @@ Kết quả kiểm định:
 \begin{rconsole}
 > print(vif_initial)
                   GVIF Df GVIF^(1/(2*Df))
-tdp           2.140665  1        1.463101
-memory_size   2.343250  1        1.530768
-memory_bus    3.662332  1        1.913722
-core_speed    3.238311  1        1.799531
-manufacturer  1.617125  1        1.271662
-memory_type   8.129892  5        1.233129
-release_year  3.598408  1        1.896947
+tdp          2.173073  1        1.474135
+memory_size  3.060343  1        1.749383
+memory_bus   2.737904  1        1.654661
+core_speed   3.869659  1        1.967145
+manufacturer 1.795841  1        1.340090
+memory_type  6.583356  5        1.207382
+release_year 3.933548  1        1.983317
 \end{rconsole}
 
 \begin{sloppypar}
-Do \texttt{memory\_type} là biến phân loại nhiều mức (6 levels), hàm \texttt{vif()} của gói \texttt{car} trả về \textbf{GVIF} (\textit{Generalized VIF}) thay vì VIF thông thường. Cột \texttt{GVIF\^(1/(2*Df))} chuẩn hóa GVIF về thang so sánh tương đương VIF đơn biến (bằng cách lấy căn bậc $2 \times Df$). Kết quả cho thấy \texttt{memory\_type} có $\text{GVIF} = 8{,}13 > 5$, vượt ngưỡng cho phép, trong khi 6 biến còn lại đều dưới ngưỡng an toàn. Do đó, nhóm loại \texttt{memory\_type} và xây lại mô hình cơ sở.
+Do \texttt{memory\_type} là biến phân loại nhiều mức (6 levels), hàm \texttt{vif()} của gói \texttt{car} trả về \textbf{GVIF} (\textit{Generalized VIF}) thay vì VIF thông thường. Cột \texttt{GVIF\^(1/(2*Df))} chuẩn hóa GVIF về thang so sánh tương đương VIF đơn biến (bằng cách lấy căn bậc $2 \times Df$). Kết quả cho thấy \texttt{memory\_type} có $\text{GVIF} = 6{,}58 > 5$, vượt ngưỡng cho phép, trong khi 6 biến còn lại đều dưới ngưỡng an toàn. Do đó, nhóm loại \texttt{memory\_type} và xây lại mô hình cơ sở.
 \end{sloppypar}
 
 \textbf{7.1.2 Mô hình cơ sở (Y gốc) và xác nhận VIF}
@@ -376,12 +376,12 @@ Tất cả 6 biến còn lại đều có $\text{VIF} < 5$, không còn đa cộ
 
 \textbf{7.1.3 Lọc ngoại lai cấu trúc từ phần dư mô hình cơ sở}
 
-Phần dư chuẩn hóa của mô hình cơ sở được dùng để xác định các quan sát bất thường. Nhóm kết hợp ngưỡng thống kê $|\text{std.residual}| > 2{,}5$ với kiến thức miền (tên GPU) để lọc đúng các ngoại lai \textit{cấu trúc} --- những sản phẩm mà sai số lớn xuất phát từ cơ chế định giá dị biệt, không phải nhiễu ngẫu nhiên:
+Phần dư chuẩn hóa của mô hình cơ sở được dùng để xác định các quan sát bất thường. Nhóm kết hợp ngưỡng thống kê $|\text{std.residual}| > 2{,}0$ với kiến thức miền (tên GPU) để lọc đúng các ngoại lai \textit{cấu trúc} --- những sản phẩm mà sai số lớn xuất phát từ cơ chế định giá dị biệt, không phải nhiễu ngẫu nhiên:
 
 \begin{minted}{R}
 std_res_base <- rstandard(mlr_model_base)
-outlier_mask <- abs(std_res_base) > 2.5 &
-  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|not[ .]released",
+outlier_mask <- abs(std_res_base) > 2.0 &
+  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|Hybrid|not[ .]released",
         df_final$name, perl = TRUE)
 
 df_final_clean <- df_final[!outlier_mask, ]
@@ -395,7 +395,7 @@ cat(sprintf("Loại %d ngoại lai cấu trúc => N = %d\n",
 Loại 9 ngoại lai cấu trúc => N = 514
 \end{rconsole}
 
-9 GPU bị loại bỏ gồm: các card Crossfire/Dual-Core (thông số bị cộng dồn gấp đôi), Quadro lọt lưới bộ lọc IQR ban đầu, card tản nhiệt nước Hydro Copper (premium cao cấp), và sản phẩm chưa phát hành. Tập dữ liệu chính thức: $\boldsymbol{N = 514}$.
+9 GPU bị loại bỏ gồm: các card Crossfire/Dual-Core (thông số bị cộng dồn gấp đôi), Quadro lọt lưới bộ lọc IQR ban đầu, card tản nhiệt nước Hydro Copper và Hybrid (premium cao cấp), và sản phẩm chưa phát hành. Tập dữ liệu chính thức: $\boldsymbol{N = 514}$.
 
 \textbf{7.1.4 Mô hình Log-Linear chính thức ($N = 514$)}
 
@@ -406,7 +406,7 @@ log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
 summary(log_model_final)
 \end{minted}
 
-Tất cả 6 biến đều có ý nghĩa thống kê ($p < 0{,}001$) với $R^2 = 82{,}78\%$. Bảng hệ số chi tiết được trình bày tại Phần~4.
+Tất cả 6 biến đều có ý nghĩa thống kê ($p < 0{,}001$) với $R^2 = 81{,}89\%$. Bảng hệ số chi tiết được trình bày tại Phần~4.
 
 \textbf{7.1.5 Kiểm định giả định trên mô hình Log-Linear}
 
@@ -417,11 +417,11 @@ print(shapiro.test(residuals(log_model_final)))
 \end{minted}
 
 \begin{sloppypar}
-\textbf{VIF}: Tất cả biến $< 3{,}5$ (cao nhất: \texttt{core\_speed} $= 3{,}32$), không có đa cộng tuyến.
+\textbf{VIF}: Tất cả biến $< 3{,}5$ (cao nhất: \texttt{core\_speed} $= 3{,}35$), không có đa cộng tuyến.
 
-\textbf{Breusch-Pagan}: $BP = 38{,}14$. Cải thiện đáng kể so với mô hình cơ sở trên $N = 523$.
+\textbf{Breusch-Pagan}: $BP = 35{,}48$. Cải thiện đáng kể so với mô hình cơ sở trên $N = 523$.
 
-\textbf{Shapiro-Wilk}: $W = 0{,}989$. Phần dư xấp xỉ chuẩn xuất sắc; diễn giải chi tiết tại Phần~4.
+\textbf{Shapiro-Wilk}: $W = 0{,}982$. Phần dư xấp xỉ chuẩn xuất sắc; diễn giải chi tiết tại Phần~4.
 \end{sloppypar}
 
 Giá dự đoán được khôi phục về đơn vị USD bằng \texttt{exp(predict(log\_model\_final))} và so sánh trực quan với giá thực tế qua Hình~\ref{fig:scatter_pred} (Phần~4).
@@ -433,7 +433,7 @@ Giá dự đoán được khôi phục về đơn vị USD bằng \texttt{exp(pr
 \begin{minted}{R}
 # Welch's ANOVA (var.equal = FALSE để xử lý phương sai không đồng nhất)
 anova_result <- oneway.test(release_price ~ manufacturer,
-                            data = df_final, var.equal = FALSE)
+                            data = df_final_clean, var.equal = FALSE)
 print(anova_result)
 \end{minted}
 

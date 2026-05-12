@@ -7,17 +7,17 @@
 
 Đề tài đặt ra hai câu hỏi nghiên cứu chính và cả hai đã được trả lời thỏa đáng bằng bằng chứng thống kê rõ ràng:
 
-\textbf{Câu hỏi 1 --- Thông số kỹ thuật nào ảnh hưởng đến giá GPU?} Mô hình Log-Linear ($R^2 = 82{,}78\%$) xác nhận cả 6 thông số đều có ý nghĩa ($p < 0{,}001$). TDP ảnh hưởng mạnh nhất ($+56{,}6\%$/SD), tiếp theo là xung nhịp lõi ($+18{,}0\%$/SD), dung lượng RAM ($+12{,}8\%$/SD), và băng thông bus ($+5{,}7\%$/SD).
+\textbf{Câu hỏi 1 --- Thông số kỹ thuật nào ảnh hưởng đến giá GPU?} Mô hình Log-Linear ($R^2 = 81{,}89\%$) xác nhận cả 6 thông số đều có ý nghĩa ($p < 0{,}001$). TDP ảnh hưởng mạnh nhất ($+55{,}8\%$/SD), tiếp theo là xung nhịp lõi ($+18{,}5\%$/SD), dung lượng RAM ($+12{,}5\%$/SD), và băng thông bus ($+5{,}8\%$/SD).
 
-\textbf{Câu hỏi 2 --- Chênh lệch giá NVIDIA vs AMD?} Welch's ANOVA ($F = 88{,}969$, $p < 2{,}2 \times 10^{-16}$): chênh lệch trung bình \textbf{\$135,21} trong phân khúc Consumer/Prosumer. Mô hình hồi quy cho thấy cùng thông số, NVIDIA đắt hơn AMD \textbf{31{,}5\%} --- phần lớn do chiến lược định giá và hệ sinh thái CUDA, không phải cấu hình phần cứng đơn thuần.
+\textbf{Câu hỏi 2 --- Chênh lệch giá NVIDIA vs AMD?} Welch's ANOVA ($F = 86{,}331$, $p < 2{,}2 \times 10^{-16}$): chênh lệch trung bình \textbf{\$132,15} trong phân khúc Consumer/Prosumer. Mô hình hồi quy cho thấy cùng thông số, NVIDIA đắt hơn AMD \textbf{32{,}1\%} --- phần lớn do chiến lược định giá và hệ sinh thái CUDA, không phải cấu hình phần cứng đơn thuần.
 
-Kết quả \textbf{vượt xa kỳ vọng}: $R^2 = 82{,}78\%$ (mục tiêu $\geq 70\%$). Việc bóc tách các GPU dị biệt cấu trúc (Crossfire, Quadro) kết hợp mô hình Log-Linear đã mang lại độ chính xác cực cao, vừa hợp lý về mặt thống kê (phần dư đạt xấp xỉ chuẩn hoàn hảo $W = 0{,}989$) vừa tối ưu về mặt diễn giải kinh tế (tác động theo phần trăm).
+Kết quả \textbf{vượt xa kỳ vọng}: $R^2 = 81{,}89\%$ (mục tiêu $\geq 70\%$). Việc bóc tách các GPU dị biệt cấu trúc (Crossfire, Quadro) kết hợp mô hình Log-Linear đã mang lại độ chính xác cực cao, vừa hợp lý về mặt thống kê (phần dư đạt xấp xỉ chuẩn hoàn hảo $W = 0{,}982$) vừa tối ưu về mặt diễn giải kinh tế (tác động theo phần trăm).
 
 \subsection{Hạn chế và đề xuất cải tiến}
 
 \begin{enumerate}
-  \item \textbf{Phương sai sai số còn dao động nhẹ} ($BP = 38{,}14$, $p \approx 1{,}05 \times 10^{-6}$). Dù đã giảm đáng kể và mức độ không còn nghiêm trọng, hiện tượng này vẫn tồn tại do dải giá rộng. \textit{Đề xuất:} Có thể thử nghiệm Weighted Least Squares (WLS).
-  \item \textbf{Sự phụ thuộc vào cỡ mẫu (P-value sensitivity):} Dù phân phối phần dư có dạng hình chuông tuyệt đẹp và cực kỳ đối xứng ($W = 0{,}989$), p-value của kiểm định Shapiro-Wilk vẫn $< 0{,}05$ do cỡ mẫu quá lớn ($N=514$). Định lý Giới hạn Trung tâm (CLT) là cứu cánh vững chắc trong trường hợp này.
+  \item \textbf{Phương sai sai số còn dao động nhẹ} ($BP = 35{,}48$, $p \approx 3{,}48 \times 10^{-6}$). Dù đã giảm đáng kể và mức độ không còn nghiêm trọng, hiện tượng này vẫn tồn tại do dải giá rộng. \textit{Đề xuất:} Có thể thử nghiệm Weighted Least Squares (WLS).
+  \item \textbf{Sự phụ thuộc vào cỡ mẫu (P-value sensitivity):} Dù phân phối phần dư có dạng hình chuông tuyệt đẹp và cực kỳ đối xứng ($W = 0{,}989$), p-value của kiểm định Shapiro-Wilk ($W = 0{,}982$) vẫn $< 0{,}05$ do cỡ mẫu quá lớn ($N=514$). Định lý Giới hạn Trung tâm (CLT) là cứu cánh vững chắc trong trường hợp này.
   \item \textbf{Selection bias} do loại hơn 80\% quan sát thiếu giá (MNAR). \textit{Đề xuất:} Bổ sung dữ liệu giá phát hành từ Archive.org hoặc Multiple Imputation.
   \item \textbf{Không xét tương tác biến.} \textit{Đề xuất:} Thêm interaction terms (ví dụ: \texttt{tdp:manufacturer}) để xem chiến lược tản nhiệt của 2 hãng khác nhau thế nào.
 \end{enumerate}
@@ -28,7 +28,7 @@ Kết quả \textbf{vượt xa kỳ vọng}: $R^2 = 82{,}78\%$ (mục tiêu $\ge
   \item \textbf{Công cụ định giá:} Phương trình Log-Linear cho phép ước lượng giá hợp lý dựa trên thông số kỹ thuật. Nếu giá thực tế vượt xa giá mô hình (như trường hợp của các card Crossfire/Hydro Copper bị bóc tách), đó là tín hiệu của các sản phẩm có tính định giá dị biệt hoặc "ảo giá".
   \item \textbf{Định lượng ``phí thương hiệu'':} NVIDIA đắt hơn AMD $\approx 31{,}5\%$ cùng thông số trong phân khúc Consumer/Prosumer --- cơ sở để người tiêu dùng cân nhắc ngân sách vs. giá trị hệ sinh thái phần mềm.
   \item \textbf{Ngân sách doanh nghiệp:} Mô hình giúp so sánh hiệu suất/giá trị thực giữa các GPU trước khi đầu tư hàng loạt.
-  \item \textbf{Tín hiệu thị trường:} GPU ra sau rẻ hơn $\approx 4{,}1\%$/năm ($\beta_{year} = -0{,}042$), định lượng chính xác sự sụt giá của sức mạnh phần cứng theo thời gian.
+  \item \textbf{Tín hiệu thị trường:} GPU ra sau rẻ hơn $\approx 4{,}0\%$/năm ($\beta_{year} = -0{,}041$), định lượng chính xác sự sụt giá của sức mạnh phần cứng theo thời gian.
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

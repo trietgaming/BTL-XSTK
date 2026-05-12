@@ -61,18 +61,18 @@
 
 
 \usepackage{fancyhdr}
-\setlength{\headheight}{40pt}
+\setlength{\headheight}{30pt}
 \pagestyle{fancy}
 \fancyhead{}
 \fancyhead[L]{
 	\begin{tabular}{rl}
-		\begin{picture}(25,25)(0,0)
-			\put(0,-8){\includegraphics[width=10mm, height=10mm]{hcmut.png}}
+		\begin{picture}(20,20)(0,0)
+			\put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.png}}
 		\end{picture}&
-		\begin{tabular}{l}
-			\textbf{\bf \ttfamily Trường Đại Học Bách Khoa Tp.Hồ Chí Minh}\\
-			\textbf{\bf \ttfamily Khoa Khoa học \& Kỹ thuật Máy tính}
-		\end{tabular} 	
+		{\setstretch{1}\renewcommand{\arraystretch}{1}\begin{tabular}{l}
+			\small\textbf{\bf \ttfamily Trường Đại Học Bách Khoa TP.HCM}\\[-2pt]
+			\small\textbf{\bf \ttfamily Khoa Khoa học Ứng dụng}
+		\end{tabular}}
 	\end{tabular}
 }
 \fancyhead[R]{

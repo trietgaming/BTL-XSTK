@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Program Files\\\\R\\\\R-4.6.0\\\\bin\\\\Rscript.exe\" main.R)",
+      "Bash(echo \"Exit: $?\")"
+    ]
+  }
+}
