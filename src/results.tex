@@ -33,22 +33,28 @@ Trước khi đưa biến thương hiệu vào mô hình đa biến, nhóm kiể
 
 Hình~\ref{fig:boxplot_brand} cho thấy hai đặc điểm nổi bật: (i)~phân phối giá NVIDIA trải rộng hơn AMD (SD $= \$200{,}77$ vs. $\$110{,}80$), và (ii)~trung vị giá NVIDIA ($\$299$) cao hơn AMD ($\$200$) khoảng 50\%. Dù phương sai đã thu hẹp đáng kể so với khi còn GPU workstation, Levene's Test vẫn xác nhận phương sai không đồng nhất, buộc nhóm sử dụng Welch's ANOVA.
 
-\begin{table}[H]
-\centering
+\setlength\LTleft{\fill}
+\setlength\LTright{\fill}
+\begin{longtable}{|l|r|r|r|r|}
 \caption{Kết quả kiểm định so sánh giá GPU giữa hai hãng ($N = 514$, Consumer/Prosumer)}
-\label{tab:anova_result}
-\begin{tabular}{|l|r|r|r|r|}
+\label{tab:anova_result} \\
 \hline
 \textbf{Hãng} & \textbf{n} & \textbf{Mean (USD)} & \textbf{Median (USD)} & \textbf{SD (USD)} \\
 \hline
+\endfirsthead
+\hline
+\textbf{Hãng} & \textbf{n} & \textbf{Mean (USD)} & \textbf{Median (USD)} & \textbf{SD (USD)} \\
+\hline
+\endhead
+\hline
+\endlastfoot
 AMD & 259 & \$214,86 & \$200,00 & \$110,80 \\
 NVIDIA & 255 & \$350,07 & \$299,00 & \$200,77 \\
 \hline
 \multicolumn{5}{|l|}{\textbf{Levene's Test:} $F = 88{,}768$, $p < 2{,}2 \times 10^{-16}$ $\to$ Phương sai KHÔNG đồng nhất} \\
 \multicolumn{5}{|l|}{\textbf{Welch's ANOVA:} $F = 88{,}969$, $df_1 = 1$, $df_2 = 394{,}27$, $p < 2{,}2 \times 10^{-16}$ ***} \\
 \hline
-\end{tabular}
-\end{table}
+\end{longtable}
 
 \textbf{Kết luận:} Levene's Test bác bỏ $H_0$ đồng nhất phương sai ($p < 2{,}2 \times 10^{-16}$), xác nhận việc dùng Welch's ANOVA là đúng đắn. Kết quả Welch's ANOVA ($F = 88{,}969$, $p < 2{,}2 \times 10^{-16}$) bác bỏ $H_0$: $\mu_{\mathrm{NVIDIA}} = \mu_{\mathrm{AMD}}$ tại mức $\alpha = 0{,}05$, nghĩa là NVIDIA có giá trung bình cao hơn AMD \textbf{\$135,21} một cách có ý nghĩa thống kê trong phân khúc Consumer/Prosumer. Vì chỉ có 2 nhóm, kết quả tương đương Welch's T-test và không cần hậu kiểm.
 
@@ -58,14 +64,21 @@ NVIDIA & 255 & \$350,07 & \$299,00 & \$200,77 \\
 
 \subsubsection{Bảng hệ số hồi quy Log-Linear}
 
-\begin{table}[H]
-\centering
+\setlength\LTleft{\fill}
+\setlength\LTright{\fill}
+\begin{longtable}{|l|r|r|r|r|l|}
 \caption{Hệ số hồi quy mô hình Log-Linear chính thức ($N = 514$, Adjusted $R^2 = 82{,}58\%$)}
-\label{tab:log_coef}
-\begin{tabular}{|l|r|r|r|r|l|}
+\label{tab:log_coef} \\
 \hline
 \textbf{Biến} & \textbf{$\hat{\beta}$} & \textbf{Std. Error} & \textbf{t value} & \textbf{p-value} & \textbf{Sig.} \\
 \hline
+\endfirsthead
+\hline
+\textbf{Biến} & \textbf{$\hat{\beta}$} & \textbf{Std. Error} & \textbf{t value} & \textbf{p-value} & \textbf{Sig.} \\
+\hline
+\endhead
+\hline
+\endlastfoot
 (Intercept) & 89,099 & 17,507 & 5,089 & $1{,}0 \times 10^{-6}$ & *** \\
 TDP & 0,4486 & 0,01575 & 28,489 & $< 2 \times 10^{-16}$ & *** \\
 Dung lượng RAM & 0,1207 & 0,01833 & 6,586 & $1{,}1 \times 10^{-10}$ & *** \\
@@ -76,10 +89,9 @@ Năm phát hành & $-0{,}0416$ & 0,00869 & $-4{,}786$ & $2{,}2 \times 10^{-6}$ &
 \hline
 \multicolumn{6}{|l|}{$R^2 = 0{,}8278$ \quad Adjusted $R^2 = 0{,}8258$ \quad $F(6, 507) = 406{,}3$ \quad $p < 2{,}2 \times 10^{-16}$} \\
 \hline
-\end{tabular}
-\end{table}
+\end{longtable}
 
-Mô hình giải thích \textbf{82,78\%} phương sai log-giá (vượt mức $75\%$ trước khi lọc outliers cấu trúc), và \textbf{tất cả 6 biến đều có ý nghĩa} ($p < 0{,}001$). Phương trình hồi quy cuối cùng:
+Mô hình giải thích \textbf{82,78\%} phương sai log-giá (vượt mức $75\%$ trước khi lọc ngoại lai cấu trúc), và \textbf{tất cả 6 biến đều có ý nghĩa} ($p < 0{,}001$). Phương trình hồi quy cuối cùng:
 \[
 \log(\hat{Y}) = 89{,}10 + 0{,}449 \cdot \text{TDP} + 0{,}121 \cdot \text{RAM} + 0{,}055 \cdot \text{Bus} + 0{,}165 \cdot \text{Core} + 0{,}274 \cdot [\text{NVIDIA}] - 0{,}042 \cdot \text{Năm}
 \]
@@ -140,7 +152,7 @@ RTX 3060 (2021) & \$329,00 & \$434,16 (\textit{+31\%}) & \textbf{\$393,68} (\tex
 \textbf{Nhận xét từ kết quả Out-of-Sample:}
 \begin{itemize}
     \item \textbf{100\% độ bao phủ KTC:} Dù dự báo xa từ 2 đến 4 năm vào tương lai, giá MSRP thực tế của \textit{toàn bộ 5 sản phẩm} đều rơi gọn gàng vào trong Khoảng tin cậy 95\% của mô hình Log-Linear. Điều này là minh chứng đanh thép cho tính vững chắc của phương trình.
-    \item \textbf{Sức mạnh của phép biến đổi Log-Linear:} Bảng~\ref{tab:out_of_sample} chứng minh sự ưu việt tuyệt đối của hàm Logarit. Mô hình tuyến tính OLS (dù đã được loại bỏ ngoại lệ) vẫn dự báo sai lệch lố lên tới 46\%--52\% cho các phân khúc bình dân. Lý do là vì quy luật định giá thị trường không tuân theo đường thẳng tuyến tính, mà có độ cong (non-linear) tụ lại tại vùng giá rẻ. Phép biến đổi Log-Linear đã "uốn cong" đường dự đoán ép sát xuống quỹ đạo thực tế, giảm sai số đi một nửa.
+    \item \textbf{Sức mạnh của phép biến đổi Log-Linear:} Bảng~\ref{tab:out_of_sample} chứng minh sự ưu việt tuyệt đối của hàm Logarit. Mô hình tuyến tính OLS (dù đã được loại bỏ ngoại lai) vẫn dự báo sai lệch lố lên tới 46\%--52\% cho các phân khúc bình dân. Lý do là vì quy luật định giá thị trường không tuân theo đường thẳng tuyến tính, mà có độ cong (non-linear) tụ lại tại vùng giá rẻ. Phép biến đổi Log-Linear đã "uốn cong" đường dự đoán ép sát xuống quỹ đạo thực tế, giảm sai số đi một nửa.
     \item \textbf{Sự chính xác bất ngờ của RX 6600 XT:} Mặc dù sở hữu băng thông Bus hẹp (128-bit) — vốn là đặc điểm của dòng card giá rẻ trước năm 2018 — nhưng RX 6600 XT lại được mô hình dự báo cực kỳ chính xác (chỉ lệch -3\% so với MSRP thực tế). Lý do là vì thông số TDP (160W) và xung nhịp Base (1968 MHz) rất cao đã "bù đắp" lại nhược điểm về Bus trong mắt mô hình.
 \end{itemize}
 
@@ -160,13 +172,13 @@ Mô hình hồi quy OLS yêu cầu ba giả định chính: không đa cộng tu
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{figures/residual_histogram.png}
-    \caption{Histogram phần dư so với đường cong phân phối chuẩn lý tưởng sau khi loại outliers cấu trúc. Cải thiện đột phá với $W = 0{,}989$.}
+    \caption{Histogram phần dư so với đường cong phân phối chuẩn lý tưởng sau khi loại ngoại lai cấu trúc. Cải thiện đột phá với $W = 0{,}989$.}
     \label{fig:resid_hist}
 \end{figure}
 
 \textbf{Phân phối chuẩn phần dư} (Shapiro-Wilk): Lột xác hoàn toàn sau khi làm sạch các cấu trúc dị biệt. Giá trị thống kê tăng vọt từ $W = 0{,}946$ lên $\mathbf{W = 0{,}989}$ (gần như tiệm cận 1 hoàn hảo). Mặc dù dữ liệu cỡ lớn ($n = 514$) khiến p-value vẫn nhạy cảm, Hình~\ref{fig:diagnostic} và \ref{fig:resid_hist} chứng minh bằng toán học và trực quan rằng phần dư lúc này là một dạng phân phối chuẩn tuyệt vời. Định lý Giới hạn Trung tâm (CLT) càng làm cho các suy diễn của mô hình bền vững tuyệt đối.
 
-\textbf{Phương sai sai số đồng nhất} (Breusch-Pagan): Hiện tượng phương sai thay đổi gần như bị triệt tiêu triệt để nhờ phép Log-Linear kết hợp với làm sạch Outliers. Chỉ số BP sụt giảm mạnh từ $63{,}43$ xuống vỏn vẹn $\mathbf{38{,}14}$. Đường xu hướng (LOWESS) trên đồ thị phần dư gần như một đường thẳng tuyệt đối.
+\textbf{Phương sai sai số đồng nhất} (Breusch-Pagan): Hiện tượng phương sai thay đổi gần như bị triệt tiêu triệt để nhờ phép Log-Linear kết hợp với làm sạch ngoại lai. Chỉ số BP sụt giảm mạnh từ $63{,}43$ xuống vỏn vẹn $\mathbf{38{,}14}$. Đường xu hướng (LOWESS) trên đồ thị phần dư gần như một đường thẳng tuyệt đối.
 
 \textbf{Tổng kết bước tối ưu hóa:} Bằng việc kết hợp suy luận logic kinh tế học (mô hình tỷ lệ Log-Linear) và kiến thức cấu trúc phần cứng (để bóc tách 9 GPU dị biệt Crossfire/Quadro), mô hình đã đạt sức mạnh giải thích $\mathbf{82{,}78\%}$. Các bài kiểm tra khắt khe đã được thỏa mãn đến mức tối ưu nhất cho một dữ liệu giá phần cứng thực tế. Mô hình cực kỳ hoàn thiện và đáng tin cậy.
 

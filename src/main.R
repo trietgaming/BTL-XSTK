@@ -320,21 +320,24 @@ summary(mlr_model_base)
 cat("\n--- VIF lần 2 (xác nhận tất cả < 5) ---\n")
 print(vif(mlr_model_base))
 
-cat("\n--- Breusch-Pagan (đồng nhất phương sai, mô hình cơ sở) ---\n")
-bp_base <- bptest(mlr_model_base)
-print(bp_base)
+# --- 7.1.3: Lọc ngoại lai cấu trúc từ phần dư mô hình cơ sở ---
+cat("\n--- 7.1.3. LỌC NGOẠI LAI CẤU TRÚC (Standardized Residuals) ---\n")
+std_res_base <- rstandard(mlr_model_base)
+outlier_mask <- abs(std_res_base) > 2.5 &
+  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|not[ .]released",
+        df_final$name, perl = TRUE)
+n_structural <- sum(outlier_mask)
+cat(sprintf("=> Phát hiện %d ngoại lai cấu trúc (Quadro/Crossfire/Hydro Copper/not released).\n",
+            n_structural))
 
-cat("\n--- Shapiro-Wilk (chuẩn phần dư, mô hình cơ sở) ---\n")
-sw_base <- shapiro.test(residuals(mlr_model_base))
-print(sw_base)
+df_final_clean <- df_final[!outlier_mask, ]
+N_final <- nrow(df_final_clean)
+cat(sprintf("=> Tập dữ liệu chính thức: N = %d (loại %d quan sát)\n",
+            N_final, N_clean - N_final))
 
-if (bp_base$p.value < 0.05 || sw_base$p.value < 0.05) {
-  cat("=> Vi phạm giả định OLS → áp dụng log-transform lên Y, xây mô hình tinh chỉnh.\n")
-}
-
-cat("\n--- 7.1.3. MÔ HÌNH LOG-LINEAR CHÍNH THỨC (N = ", N_clean, ") ---\n", sep="")
+cat("\n--- 7.1.4. MÔ HÌNH LOG-LINEAR CHÍNH THỨC (N = ", N_final, ") ---\n", sep="")
 log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
-                        core_speed + manufacturer + release_year, data = df_final)
+                        core_speed + manufacturer + release_year, data = df_final_clean)
 summary(log_model_final)
 
 # Kiểm định lại giả định trên mô hình log-linear final
@@ -351,8 +354,8 @@ print(shapiro.test(residuals(log_model_final)))
 # Giai đoạn 4: Trực quan hóa kết quả
 cat("\n--- 4. VẼ BIỂU ĐỒ SO SÁNH THỰC TẾ & DỰ ĐOÁN ---\n")
 # Dùng exp() để đưa giá trị log về lại tiền USD để so sánh
-predicted_values <- exp(predict(log_model_final)) 
-actual_values <- df_final$release_price
+predicted_values <- exp(predict(log_model_final))
+actual_values <- df_final_clean$release_price
 
 # Vẽ scatter plot
 png("figures/scatter_actual_vs_predicted.png", type="cairo", width=700, height=600, res=120)

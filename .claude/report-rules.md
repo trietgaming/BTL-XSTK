@@ -44,7 +44,7 @@ Các `\section{}` cấp cao nhất là quy định của giảng viên, **tuyệ
 ### 6. Giới hạn số trang
 - Tối đa **30 trang nội dung** (không tính trang bìa).
 - Khi thêm nội dung mới, ước tính số trang hiện tại. Nếu gần đủ 30 trang, hỏi người dùng trước khi thêm.
-- Ưu tiên biểu đồ súc tích thay vì nhiều bảng dài; dùng `longtable` chỉ khi thực sự cần.
+- Ưu tiên biểu đồ súc tích thay vì nhiều bảng dài
 
 ### 7. Chất lượng thống kê học thuật
 Mỗi kiểm định thống kê trong báo cáo phải trình bày đủ 4 thành phần:
