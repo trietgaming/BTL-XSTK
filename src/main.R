@@ -28,7 +28,6 @@ colSums(is.na(raw_data))
 # PHÂN TÍCH HỖ TRỢ: Tỷ lệ dữ liệu khuyết theo 34 thuộc tính
 # Xuất Hình minh họa cho mục 2.2 báo cáo (justify quy trình lọc biến)
 # ==========================================================
-if (!dir.exists("figures")) dir.create("figures")
 
 # Đếm cả NA và chuỗi rỗng / không hợp lệ (vd: "-", "")
 missing_count <- sapply(raw_data, function(col) {
@@ -51,24 +50,39 @@ missing_df <- data.frame(
 )
 missing_df <- missing_df[order(-missing_df$pct), ]
 
-bar_colors <- with(missing_df,
+# Gộp các biến xám: tính trung bình missing % của chúng
+other_vars <- missing_df[!missing_df$kept & missing_df$pct < 30, ]
+avg_other_pct <- mean(other_vars$pct)
+other_count <- nrow(other_vars)
+
+# Tạo bảng hiển thị: biến giữ + biến đỏ + 1 hàng "Các biến khác"
+missing_df_plot <- rbind(
+  missing_df[missing_df$kept | missing_df$pct >= 30, ],
+  data.frame(
+    variable = paste("Trung bình các biến khác", sprintf("(%d)", other_count)),
+    pct = avg_other_pct,
+    kept = FALSE
+  )
+)
+
+bar_colors_plot <- with(missing_df_plot,
   ifelse(kept, "#2c7fb8",
     ifelse(pct >= 30, "#e34a33", "#bdbdbd")))
 
 png("figures/missing_data_ratio.png", type = "cairo",
-    width = 2400, height = 2400, res = 300)
-par(mar = c(5, 11, 4, 2))
-barplot(rev(missing_df$pct),
-        names.arg = rev(missing_df$variable),
+    width = 2400, height = 1400, res = 300)
+par(mar = c(5, 15, 4, 2))
+barplot(rev(missing_df_plot$pct),
+        names.arg = rev(missing_df_plot$variable),
         horiz = TRUE, las = 1,
-        col = rev(bar_colors),
+        col = rev(bar_colors_plot),
         xlim = c(0, 100),
         xlab = "Tỷ lệ dữ liệu khuyết (%)",
-        main = "Tỷ lệ dữ liệu khuyết của 34 thuộc tính (N = 3.406)",
-        cex.names = 0.7, cex.main = 1.05)
+        main = "Tỷ lệ dữ liệu khuyết (N = 3.406)",
+        cex.names = 0.85, cex.main = 1.05)
 abline(v = 30, col = "red", lty = 2, lwd = 1.5)
 legend("bottomright",
-       legend = c("Biến được chọn (8)", "Bị loại (thiếu >= 30%)", "Bị loại (lý do khác)"),
+       legend = c("Biến được chọn (8)", "Bị loại (thiếu >= 30%)", "Các biến khác"),
        fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
        cex = 0.85, bty = "n")
 dev.off()
@@ -78,9 +92,10 @@ cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
 
 # --- 2.1: Chọn cột và đổi tên ---
 df <- raw_data %>%
-  select(Release_Price, Max_Power, Memory, Memory_Bus,
+  select(Name, Release_Price, Max_Power, Memory, Memory_Bus,
          Core_Speed, Release_Date, Manufacturer, Memory_Type) %>%
   rename(
+    name          = Name,
     release_price = Release_Price, tdp          = Max_Power,
     memory_size   = Memory,        memory_bus   = Memory_Bus,
     core_speed    = Core_Speed,    release_date = Release_Date,
@@ -117,43 +132,51 @@ df <- df %>%
 cat("\n--- 2: Cấu trúc df sau khi hoàn thành Bước 2 ---\n")
 str(df)
 
-# BƯỚC 3 & 4: XỬ LÝ NGOẠI LỆ, LOẠI BỎ INTEL VÀ GIÁ TRỊ KHUYẾT
-# 4.1: Lọc dữ liệu trước 
-df_clean <- df %>% 
-  filter(!is.na(release_price)) %>%            # Giữ lại các dòng có giá
-  filter(manufacturer != "Intel")              # Loại bỏ hãng Intel
+# BƯỚC 3: NHẬN DIỆN VÀ LOẠI BỎ NGOẠI LỆ (IQR TRÊN TẬP GỐC)
 
-df_clean$manufacturer <- factor(df_clean$manufacturer)
-
-#  3.1: Định nghĩa hàm tính ngoại lệ chuẩn theo lý thuyết Final ---
-count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
-  raw_vec <- na.omit(raw_vec)
-  q1 <- quantile(raw_vec, 0.25)
-  q3 <- quantile(raw_vec, 0.75)
-  iqr <- q3 - q1
-  upper_bound <- q3 + 1.5 * iqr
-  
-  # Đếm xem trong tập sạch có bao nhiêu giá trị vượt ngưỡng của tập thô
-  return(sum(clean_vec > upper_bound, na.rm = TRUE))
+# 3.1: Tính ranh giới Tukey cho CÁC BIẾN SỐ LIÊN TỤC trên tập thô (trước mọi lọc và điền khuyết)
+calc_tukey <- function(vec) {
+  v <- na.omit(vec)
+  q1 <- quantile(v, 0.25); q3 <- quantile(v, 0.75); iqr <- q3 - q1
+  list(q1=q1, q3=q3, iqr=iqr, lower=q1-1.5*iqr, upper=q3+1.5*iqr)
 }
 
-#  3.2: Thống kê kết quả để đưa vào báo cáo ---
-cat("\n--- THỐNG KÊ NGOẠI LỆ (Dựa trên ranh giới tập thô N=3406) ---\n")
-cat("Số lượng ngoại lệ release_price trong mẫu phân tích:", 
-    count_outliers_by_raw_bounds(df$release_price, df_clean$release_price), "\n")
+price_bnd  <- calc_tukey(df$release_price)
+tdp_bnd    <- calc_tukey(df$tdp)
+cspeed_bnd <- calc_tukey(df$core_speed)
 
-cat("Số lượng ngoại lệ tdp trong mẫu phân tích:", 
-    count_outliers_by_raw_bounds(df$tdp, df_clean$tdp), "\n")
+cat(sprintf("\n--- Ranh giới Tukey (tập thô N=%d) ---\n", nrow(df)))
+cat(sprintf("release_price: Q1=%.0f,  Q3=%.0f,  IQR=%.0f,  Ngưỡng trên=%.2f\n",
+            price_bnd$q1,  price_bnd$q3,  price_bnd$iqr,  price_bnd$upper))
+cat(sprintf("tdp:           Q1=%.1f, Q3=%.1f, IQR=%.1f, Ngưỡng trên=%.2f\n",
+            tdp_bnd$q1,    tdp_bnd$q3,    tdp_bnd$iqr,    tdp_bnd$upper))
+cat(sprintf("core_speed:    Q1=%.0f, Q3=%.0f, IQR=%.0f, Ngưỡng trên=%.2f\n",
+            cspeed_bnd$q1, cspeed_bnd$q3, cspeed_bnd$iqr, cspeed_bnd$upper))
 
-cat("Số lượng ngoại lệ core_speed trong mẫu phân tích:", 
-    count_outliers_by_raw_bounds(df$core_speed, df_clean$core_speed), "\n")
+# BƯỚC 4: LOẠI BỎ QUAN SÁT KHÔNG HỢP LỆ VÀ ĐIỀN GIÁ TRỊ KHUYẾT
 
-#  3.3: Vẽ Boxplot minh họa (Dùng tập df_clean N=556) ---
+# 4.1: Lọc dữ liệu: bỏ NA giá, Intel, và TẤT CẢ ngoại lệ IQR (tiền xử lý trước mô hình)
+n_has_price_no_intel <- nrow(df %>% filter(!is.na(release_price), manufacturer != "Intel"))
+df_clean <- df %>%
+  filter(!is.na(release_price)) %>%
+  filter(manufacturer != "Intel") %>%
+  filter(release_price <= price_bnd$upper) %>%
+  filter(is.na(tdp)        | tdp        <= tdp_bnd$upper) %>%
+  filter(is.na(core_speed) | core_speed <= cspeed_bnd$upper)
+
+cat(sprintf("\n=> Số quan sát ban đầu (có giá, không Intel): %d\n", n_has_price_no_intel))
+cat(sprintf("=> Sau khi loại tất cả ngoại lệ IQR: %d (đã loại %d quan sát)\n",
+            nrow(df_clean), n_has_price_no_intel - nrow(df_clean)))
+
+df_clean$manufacturer <- factor(df_clean$manufacturer)
+N_clean <- nrow(df_clean)
+
+# 3.2: Boxplot kiểm tra sau khi lọc (xác nhận không còn ngoại lệ)
 png("figures/boxplot_outliers.png", type="cairo", width=900, height=400, res=120)
 par(mfrow=c(1,3))
-boxplot(df_clean$release_price, main="Giá (N=556)", col="lightblue", ylab="USD")
-boxplot(df_clean$tdp, main="TDP (N=556)", col="lightgreen", ylab="Watts")
-boxplot(df_clean$core_speed, main="Core Speed (N=556)", col="salmon", ylab="MHz")
+boxplot(df_clean$release_price, main=sprintf("Giá (N=%d)", N_clean), col="lightblue", ylab="USD")
+boxplot(df_clean$tdp,           main=sprintf("TDP (N=%d)", N_clean), col="lightgreen", ylab="Watts")
+boxplot(df_clean$core_speed,    main=sprintf("Core Speed (N=%d)", N_clean), col="salmon", ylab="MHz")
 par(mfrow=c(1,1))
 dev.off()
 # Hàm tự tạo để tìm Mode 
@@ -205,7 +228,7 @@ image(1:n_cor, 1:n_cor, img_data,
       col = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
       breaks = seq(-1, 1, length.out = 101),
       axes = FALSE, xlab = "", ylab = "",
-      main = "Ma trận tương quan Pearson giữa các biến số (N = 556)")
+      main = sprintf("Ma trận tương quan Pearson giữa các biến số (N = %d)", N_clean))
 axis(1, at = 1:n_cor, labels = colnames(cor_matrix), las = 2, cex.axis = 0.85)
 axis(2, at = 1:n_cor, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.85)
 
@@ -227,6 +250,14 @@ df_clean <- df_clean %>%
     memory_type = as.factor(memory_type)
   )
 
+
+cat("\n--- THỐNG KÊ MÔ TẢ RELEASE_PRICE (sau khi lọc) ---\n")
+cat(sprintf("N = %d\n", N_clean))
+cat(sprintf("Mean  = %.2f\n", mean(df_clean$release_price)))
+cat(sprintf("Median= %.2f\n", median(df_clean$release_price)))
+cat(sprintf("SD    = %.2f\n", sd(df_clean$release_price)))
+cat(sprintf("Max   = %.2f\n", max(df_clean$release_price)))
+cat(sprintf("Min   = %.2f\n", min(df_clean$release_price)))
 
 cat("\n--- KIỂM TRA ĐỘ SẠCH CỦA DỮ LIỆU ---\n")
 cat("Số lượng giá trị khuyết (NA) còn lại:\n")
@@ -270,36 +301,50 @@ library(rstatix)  # Games-Howell test
 # 7.1. MÔ HÌNH HỒI QUY TUYẾN TÍNH BỘI (CẬP NHẬT THEO FINAL)
 # ==========================================================
 
-#  1: Mô hình sơ bộ để phát hiện đa cộng tuyến 
-cat("\n--- 1. MÔ HÌNH SƠ BỘ VÀ KIỂM ĐỊNH ĐA CỘNG TUYẾN (VIF) ---\n")
-# Chạy mô hình có memory_type để chứng minh VIF > 5
-mlr_model_initial <- lm(release_price ~ tdp + memory_size + memory_bus + 
-                          core_speed + manufacturer + memory_type + release_year, data = df_final)
-
-# Sử dụng chuẩn VIF < 5 thay vì VIF < 10 theo đúng lý thuyết
+# --- 7.1.1: Mô hình đầy đủ (7 biến, Y gốc) → kiểm định VIF ---
+cat("\n--- 7.1.1. MÔ HÌNH ĐẦY ĐỦ & KIỂM ĐỊNH VIF ---\n")
+mlr_model_initial <- lm(release_price ~ tdp + memory_size + memory_bus +
+                          core_speed + manufacturer + memory_type + release_year,
+                        data = df_final)
 vif_initial <- vif(mlr_model_initial)
 print(vif_initial)
-cat("=> Phát hiện memory_type có VIF cao (sẽ bị loại bỏ).\n")
+cat("=> memory_type GVIF =", round(vif_initial["memory_type", "GVIF"], 2),
+    "> 5: loại biến, xây lại mô hình.\n")
 
-# Giai đoạn 2: Xây dựng Mô hình chính thức (Log-Linear, không memory_type) ---
-cat("\n--- 2. MÔ HÌNH LOG-LINEAR CHÍNH THỨC (Đã loại memory_type) ---\n")
-log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus + 
+# --- 7.1.2: Mô hình cơ sở (Y gốc, đã loại memory_type) → kiểm định giả định OLS ---
+cat("\n--- 7.1.2. MÔ HÌNH CƠ SỞ (Y gốc, 6 biến) & KIỂM ĐỊNH GIẢ ĐỊNH OLS ---\n")
+mlr_model_base <- lm(release_price ~ tdp + memory_size + memory_bus +
+                       core_speed + manufacturer + release_year, data = df_final)
+summary(mlr_model_base)
+
+cat("\n--- VIF lần 2 (xác nhận tất cả < 5) ---\n")
+print(vif(mlr_model_base))
+
+cat("\n--- Breusch-Pagan (đồng nhất phương sai, mô hình cơ sở) ---\n")
+bp_base <- bptest(mlr_model_base)
+print(bp_base)
+
+cat("\n--- Shapiro-Wilk (chuẩn phần dư, mô hình cơ sở) ---\n")
+sw_base <- shapiro.test(residuals(mlr_model_base))
+print(sw_base)
+
+if (bp_base$p.value < 0.05 || sw_base$p.value < 0.05) {
+  cat("=> Vi phạm giả định OLS → áp dụng log-transform lên Y, xây mô hình tinh chỉnh.\n")
+}
+
+cat("\n--- 7.1.3. MÔ HÌNH LOG-LINEAR CHÍNH THỨC (N = ", N_clean, ") ---\n", sep="")
+log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
                         core_speed + manufacturer + release_year, data = df_final)
-
 summary(log_model_final)
 
-
-# Giai đoạn 3: Các kiểm định bắt buộc trên mô hình chính thức ---
-
-cat("\n--- 3a. KIỂM ĐỊNH LẠI VIF TRÊN MÔ HÌNH CHÍNH THỨC ---\n")
-# Đảm bảo toàn bộ VIF hiện tại đều < 5
+# Kiểm định lại giả định trên mô hình log-linear final
+cat("\n--- VIF (mô hình log-linear, xác nhận < 5) ---\n")
 print(vif(log_model_final))
 
-cat("\n--- 3b. KIỂM ĐỊNH PHƯƠNG SAI SAI SỐ (Breusch-Pagan) ---\n")
+cat("\n--- Breusch-Pagan (mô hình log-linear) ---\n")
 print(bptest(log_model_final))
 
-cat("\n--- 3c. KIỂM ĐỊNH PHÂN PHỐI CHUẨN PHẦN DƯ (Shapiro-Wilk) ---\n")
-# Kiểm tra xem log() đã cải thiện phần dư chưa
+cat("\n--- Shapiro-Wilk (mô hình log-linear) ---\n")
 print(shapiro.test(residuals(log_model_final)))
 
 
@@ -395,7 +440,7 @@ png("figures/boxplot_nvidia_vs_amd.png", type = "cairo",
 par(mar = c(5, 5, 4, 2))
 boxplot(release_price ~ manufacturer, data = df_final,
         col = c("#e34a33", "#2c7fb8"),
-        main = "Phân phối giá phát hành theo hãng sản xuất (N = 556)",
+        main = sprintf("Phân phối giá phát hành theo hãng sản xuất (N = %d)", N_clean),
         xlab = "Hãng sản xuất",
         ylab = "Giá phát hành (USD)",
         cex.lab = 1.15, cex.main = 1.2,
@@ -491,3 +536,35 @@ print(anova_result)
 
 cat("\nLưu ý: Không thực hiện hậu kiểm (Post-hoc) vì chỉ còn 2 nhóm NVIDIA và AMD.\n")
 cat("Kết quả ANOVA này về mặt toán học tương đương với Welch's T-test.\n")
+
+# --- IN THỐNG KÊ CHI TIẾT CHO LATEX ---
+cat("\n===== THỐNG KÊ CHO LATEX =====\n")
+cat(sprintf("N_total = %d\n", N_clean))
+amd_data  <- df_final$release_price[df_final$manufacturer == "AMD"]
+nv_data   <- df_final$release_price[df_final$manufacturer == "Nvidia"]
+cat(sprintf("AMD:    n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
+            length(amd_data), mean(amd_data), median(amd_data), sd(amd_data)))
+cat(sprintf("NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
+            length(nv_data), mean(nv_data), median(nv_data), sd(nv_data)))
+cat(sprintf("Chênh lệch mean NVIDIA - AMD = %.2f\n", mean(nv_data) - mean(amd_data)))
+
+cat("\n--- Hệ số hồi quy Log-Linear ---\n")
+coef_summary <- summary(log_model_final)$coefficients
+print(round(coef_summary, 6))
+cat(sprintf("R2        = %.4f\n", summary(log_model_final)$r.squared))
+cat(sprintf("Adj R2    = %.4f\n", summary(log_model_final)$adj.r.squared))
+cat(sprintf("F-stat    = %.2f\n", summary(log_model_final)$fstatistic[1]))
+cat(sprintf("df1=%d, df2=%d\n", summary(log_model_final)$fstatistic[2],
+            summary(log_model_final)$fstatistic[3]))
+
+cat("\n--- Tác động % của từng biến ---\n")
+coef_vals <- coef_summary[-1, "Estimate"]
+pct_effect <- (exp(coef_vals) - 1) * 100
+for (nm in names(pct_effect)) cat(sprintf("  %s: %.2f%%\n", nm, pct_effect[nm]))
+
+cat("\n--- Skewness giá gốc ---\n")
+price_vals <- df_final$release_price
+n_sk <- length(price_vals)
+skew_val <- (n_sk / ((n_sk-1)*(n_sk-2))) * sum(((price_vals - mean(price_vals))/sd(price_vals))^3)
+cat(sprintf("Skewness = %.4f\n", skew_val))
+cat("===== KẾT THÚC THỐNG KÊ =====\n")

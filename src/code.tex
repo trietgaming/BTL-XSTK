@@ -1,8 +1,10 @@
+% !TEX root = main.tex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Code và Xử lý dữ liệu}
+\label{sec:code_xu_ly_du_lieu}
 
 \subsection{Bước 1: Tải dữ liệu và xác định biến phân tích}
-\label{sec:phan_tich_bien}
+\label{sec:buoc_1_tai_du_lieu}
 
 Bước đầu tiên là cơ sở để nhìn toàn cảnh 34 thuộc tính và quyết định biến nào đáng giữ lại. Code tải dữ liệu và phân tích tỷ lệ khuyết được thực hiện liên tiếp trong cùng một luồng:
 
@@ -23,49 +25,28 @@ missing_count <- sapply(raw_data, function(col) {
 missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
 \end{minted}
 
-Hàm \texttt{sapply} duyệt qua từng cột: với cột ký tự, bắt cả \texttt{NA} lẫn chuỗi rỗng và dấu gạch; với cột số, chỉ cần \texttt{is.na()}. Vector \texttt{missing\_pct} là nền tảng để vẽ biểu đồ và đưa ra quyết định loại biến:
+Hàm \texttt{sapply} duyệt qua từng cột: với cột ký tự, bắt cả \texttt{NA} lẫn chuỗi rỗng và dấu gạch; với cột số, chỉ cần \texttt{is.na()}. Từ vector \texttt{missing\_pct}, nhóm lọc biến trực tiếp theo điều kiện ngưỡng 30\%:
 
 \begin{minted}{R}
+# Tầng 3: xác định biến bị loại do tỷ lệ khuyết >= 30%
+dropped_high_missing <- names(missing_pct[missing_pct >= 30])
+cat("Biến bị loại (tầng 3, thiếu >= 30%):\n",
+    paste(dropped_high_missing, collapse = ", "), "\n")
+
+# Tầng 1-2: loại biến dẫn xuất, không liên quan kinh tế; giữ Y + 7 biến X
+# Bắt buộc giữ: Release_Price (biến Y - giá phát hành)
 kept_vars <- c("Release_Price", "Max_Power", "Memory", "Memory_Bus",
                "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type")
-missing_df <- data.frame(
-  variable = names(missing_pct),
-  pct      = as.numeric(missing_pct),
-  kept     = names(missing_pct) %in% kept_vars
-)
-missing_df <- missing_df[order(-missing_df$pct), ]
-bar_colors <- with(missing_df,
-  ifelse(kept, "#2c7fb8", ifelse(pct >= 30, "#e34a33", "#bdbdbd")))
-
-png("figures/missing_data_ratio.png", type = "cairo",
-    width = 2400, height = 2400, res = 300)
-par(mar = c(5, 11, 4, 2))
-barplot(rev(missing_df$pct), names.arg = rev(missing_df$variable),
-        horiz = TRUE, las = 1, col = rev(bar_colors), xlim = c(0, 100),
-        xlab = "Tỷ lệ dữ liệu khuyết (%)",
-        main = "Tỷ lệ dữ liệu khuyết của 34 thuộc tính (N = 3.406)",
-        cex.names = 0.7, cex.main = 1.05)
-abline(v = 30, col = "red", lty = 2, lwd = 1.5)
-legend("bottomright",
-       legend = c("Biến được chọn (8)", "Bị loại (thiếu >= 30%)", "Bị loại (lý do khác)"),
-       fill = c("#2c7fb8", "#e34a33", "#bdbdbd"), cex = 0.85, bty = "n")
-dev.off()
 \end{minted}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/missing_data_ratio.png}
-    \caption{Tỷ lệ dữ liệu khuyết của 34 thuộc tính trong bộ dữ liệu thô ($N = 3.406$). Đường đỏ đứt nét: ngưỡng loại 30\%}
+    \caption{Tỷ lệ dữ liệu khuyết của 34 thuộc tính ($N = 3.406$). Đường đỏ đứt nét: ngưỡng loại 30\%.}
     \label{fig:missing_ratio}
 \end{figure}
 
-Từ kết quả Hình~\ref{fig:missing_ratio}, nhóm áp dụng quy trình lọc ba tầng: 
-\begin{itemize}
-    \item \textbf{Tầng~1} loại 3 biến vượt ngưỡng 30\% (\texttt{DisplayPort\_Connection} $\sim$75\%, \texttt{Boost\_Clock} $\sim$57\%, \texttt{PSU} $\sim$35\%); 
-    \item \textbf{Tầng~2} loại các biến dẫn xuất (\texttt{Memory\_Bandwidth}, \texttt{Boost\_Clock}, các thông số kiến trúc bậc thấp); 
-    \item \textbf{Tầng~3} loại biến định danh và không liên quan kinh tế (\texttt{Name}, \texttt{Architecture}, các cổng kết nối, các cờ nhị phân). 
-\end{itemize}
-Kết quả: \textbf{8 biến chính thức}:
+Áp dụng quy trình lọc ba tầng (Section \ref{sec:co_so_ly_thuyet}), trong đó Tầng~3 loại 3 biến vượt ngưỡng 30\% khuyết theo Hình~\ref{fig:missing_ratio}. Kết quả: \textbf{8 biến chính thức}:
 
 {\small
 \renewcommand{\arraystretch}{1.1}
@@ -91,8 +72,9 @@ Kết quả: \textbf{8 biến chính thức}:
 }
 
 \subsection{Bước 2: Chọn lọc, đổi tên và ép kiểu dữ liệu}
+\label{sec:buoc_2_chon_loc}
 
-Với 8 biến đã xác định ở Bước~1, Bước~2 thực hiện 4 thao tác độc lập và có thứ tự: chọn và đổi tên cột, gộp nhãn ATI $\to$ AMD, trích xuất số từ chuỗi, và parse ngày tháng thành năm.
+Với 8 biến đã xác định ở Bước~\ref{sec:buoc_1_tai_du_lieu}, Bước~\ref{sec:buoc_2_chon_loc} thực hiện 4 thao tác độc lập và có thứ tự: chọn và đổi tên cột, gộp nhãn ATI $\to$ AMD, trích xuất số từ chuỗi, và parse ngày tháng thành năm.
 
 \subsubsection*{2.1. Chọn cột và đổi tên}
 
@@ -114,7 +96,7 @@ df <- raw_data %>%
 
 \subsubsection*{2.2. Gộp nhãn ATI $\to$ AMD}
 
-Dữ liệu thô chứa cả hai nhãn; nếu không gộp, mô hình sẽ xử lý ``ATI'' và ``AMD'' như hai hãng hoàn toàn khác nhau:
+Lý do gộp đã trình bày tại Phần~2.2; đây là bước thực thi:
 
 \begin{minted}{R}
 df <- df %>%
@@ -133,7 +115,7 @@ Kết quả kiểm tra sau khi gộp:
  1409     4   1743
 \end{rconsole}
 
-Toàn bộ card ATI đã được gán vào nhóm AMD; Intel (4 quan sát) sẽ bị loại bỏ ở Bước~4 vì không có giá niêm yết.
+Toàn bộ card ATI đã được gán vào nhóm AMD; Intel (4 quan sát) sẽ bị loại bỏ ở Bước~\ref{sec:buoc_4_dien_khuyết} vì không có giá niêm yết.
 
 \subsubsection*{2.3. Trích xuất số từ chuỗi có đơn vị}
 
@@ -152,7 +134,7 @@ df <- df %>%
 
 Regex \texttt{"{\textbackslash}d+{\textbackslash}.?{\textbackslash}d*"} khớp với: một hoặc nhiều chữ số, theo sau là dấu chấm thập phân tùy chọn và các chữ số thập phân --- ví dụ: \texttt{"738 MHz"} $\to$ \texttt{"738"} $\to$ \texttt{738}; \texttt{"14.999"} $\to$ \texttt{"14.999"} $\to$ \texttt{14999}.
 
-Chuỗi không hợp lệ (\texttt{""}, \texttt{"-"}, \texttt{"N/A"}) không khớp regex $\to$ \texttt{str\_extract()} trả về \texttt{NA} $\to$ \texttt{as.numeric(NA)} trả về \texttt{NA}. Đây là hành vi \textit{mong muốn}: biến các chuỗi rỗng thành \texttt{NA} thực sự để bước điền khuyết ở Bước~4 xử lý nhất quán.
+Chuỗi không hợp lệ (\texttt{""}, \texttt{"-"}, \texttt{"N/A"}) không khớp regex $\to$ \texttt{str\_extract()} trả về \texttt{NA} $\to$ \texttt{as.numeric(NA)} trả về \texttt{NA}. Đây là hành vi \textit{mong muốn}: biến các chuỗi rỗng thành \texttt{NA} thực sự để bước điền khuyết ở Bước~\ref{sec:buoc_4_dien_khuyết} xử lý nhất quán.
 
 \subsubsection*{2.4. Parse chuỗi ngày tháng $\to$ năm}
 
@@ -169,7 +151,7 @@ df <- df %>%
 
 \textbf{\texttt{as.Date(..., "\%d-\%b-\%Y")}}: Parse chuỗi theo định dạng ngày-tháng viết tắt-năm (\texttt{"\%b"} là Jan, Feb, Mar\ldots). \textbf{\texttt{format(..., "\%Y")}}: Trích lấy 4 chữ số năm dưới dạng chuỗi. \textbf{\texttt{as.integer()}}: Chuyển thành số nguyên liên tục phù hợp cho hồi quy --- hệ số $\hat{\beta}$ đọc được là ``mức thay đổi log-giá mỗi năm''. \textbf{\texttt{select(-release\_date)}}: Bỏ cột chuỗi gốc sau khi đã tách năm, tránh nhầm lẫn ở các bước sau.
 
-Chuỗi không parse được (thiếu ngày, định dạng sai) tự động trở thành \texttt{NA} và được xử lý ở Bước~4.
+Chuỗi không parse được (thiếu ngày, định dạng sai) tự động trở thành \texttt{NA} và được xử lý ở Bước~\ref{sec:buoc_4_dien_khuyết}.
 
 \subsubsection*{Kết quả sau Bước 2}
 
@@ -186,49 +168,41 @@ Chuỗi không parse được (thiếu ngày, định dạng sai) tự động t
  $ release_year : int  NA 2010 2009 2010 2010 2009 ...
 \end{rconsole}
 
-Tất cả 5 biến số đã ở kiểu \texttt{num}/\texttt{int}; các chuỗi không hợp lệ đã chuyển thành \texttt{NA} thực sự (nhìn thấy được qua \texttt{is.na()}); cột \texttt{release\_date} đã bị loại. Bộ dữ liệu \textbf{3.406 quan sát $\times$ 8 biến} sẵn sàng cho Bước~3.
+Tất cả 5 biến số đã ở kiểu \texttt{num}/\texttt{int}; các chuỗi không hợp lệ đã chuyển thành \texttt{NA} thực sự (nhìn thấy được qua \texttt{is.na()}); cột \texttt{release\_date} đã bị loại. Bộ dữ liệu \textbf{3.406 quan sát $\times$ 8 biến} sẵn sàng cho Bước~\ref{sec:buoc_3_ngoai_le}.
 
 \subsection{Bước 3: Nhận diện ngoại lệ (IQR trên tập gốc)}
+\label{sec:buoc_3_ngoai_le}
 
-Theo nguyên tắc đã trình bày ở Phần~2.4.2, ranh giới IQR phải được tính \textbf{trước khi lọc hay điền khuyết} để phản ánh đúng phân phối thực tế. Nhóm định nghĩa hàm tính ranh giới trên tập thô rồi đếm ngoại lệ trên tập đã lọc (sẽ được tạo ở Bước~4):
+Theo nguyên tắc đã trình bày ở Section~\ref{sec:co_so_ly_thuyet} (Phần 2), ranh giới IQR phải được tính \textbf{trước khi lọc hay điền khuyết}. Nhóm tính ngưỡng Tukey trên tập thô rồi đưa trực tiếp vào bộ lọc Bước~\ref{sec:buoc_4_dien_khuyết}:
 
 \begin{minted}{R}
+# Tính ngưỡng Tukey cho release_price trên tập thô (N = 3.406)
+price_raw_vec <- na.omit(df$release_price)
+price_q3_raw  <- quantile(price_raw_vec, 0.75)
+price_iqr_raw <- price_q3_raw - quantile(price_raw_vec, 0.25)
+price_upper   <- price_q3_raw + 1.5 * price_iqr_raw  # => $814
+
+# Hàm đếm ngoại lệ còn lại (dùng cho TDP, core_speed)
 count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
   raw_vec <- na.omit(raw_vec)
-  q1 <- quantile(raw_vec, 0.25)
-  q3 <- quantile(raw_vec, 0.75)
-  iqr <- q3 - q1
-  upper_bound <- q3 + 1.5 * iqr
-  return(sum(clean_vec > upper_bound, na.rm = TRUE))
+  q3 <- quantile(raw_vec, 0.75); iqr <- q3 - quantile(raw_vec, 0.25)
+  return(sum(clean_vec > q3 + 1.5 * iqr, na.rm = TRUE))
 }
 \end{minted}
 
-Hàm nhận hai đầu vào: \texttt{raw\_vec} (vector từ tập gốc $N = 3.406$) để xác định ranh giới $Q_3 + 1{,}5 \times \mathrm{IQR}$, và \texttt{clean\_vec} (vector từ tập đã lọc) để đếm số quan sát vượt ngưỡng. Boxplot dưới đây trực quan hóa phân phối và vị trí ngoại lệ trên tập phân tích ($N = 556$, sau khi lọc ở Bước~4):
-
-\begin{minted}{R}
-png("figures/boxplot_outliers.png", type = "cairo",
-    width = 900, height = 400, res = 120)
-par(mfrow = c(1, 3))
-boxplot(df_clean$release_price, main = "Giá (N=556)",
-        col = "lightblue",  ylab = "USD")
-boxplot(df_clean$tdp,           main = "TDP (N=556)",
-        col = "lightgreen", ylab = "Watts")
-boxplot(df_clean$core_speed,    main = "Core Speed (N=556)",
-        col = "salmon",     ylab = "MHz")
-par(mfrow = c(1, 1))
-dev.off()
-\end{minted}
+Ngưỡng trên của \texttt{release\_price} tính được là \$814. Toàn bộ 33 quan sát vượt ngưỡng này đều thuộc phân khúc Workstation/Enterprise (lý do loại bỏ tại Section~\ref{sec:co_so_ly_thuyet}). Kết quả được trực quan hóa qua Hình~\ref{fig:boxplot_outliers}.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/boxplot_outliers.png}
-    \caption{Boxplot của ba biến có ngoại lệ trên mẫu phân tích ($N = 556$). Các điểm vượt râu trên đều thuộc GPU flagship hoặc workstation --- ngoại lệ hợp lệ, được giữ lại.}
+    \caption{Boxplot của ba biến trên mẫu phân tích sau khi lọc ($N = 523$). \texttt{release\_price} không còn điểm ngoại lệ; \texttt{tdp} và \texttt{core\_speed} còn ngoại lệ thuộc GPU gaming cao cấp --- giữ nguyên.}
     \label{fig:boxplot_outliers}
 \end{figure}
 
-Kết quả: \texttt{release\_price} có 33 ngoại lệ, \texttt{tdp} có 27, \texttt{core\_speed} có 29. Tất cả đều nằm phía trên (không có giá trị âm vô lý) và là GPU thực tế thuộc phân khúc cao cấp --- nhóm quyết định \textbf{giữ nguyên}, không cắt bỏ ngoại lệ.
+Sau khi áp dụng bộ lọc giá: \texttt{release\_price} có 0 ngoại lệ (đã loại sạch), \texttt{tdp} còn 7, \texttt{core\_speed} còn 41 --- đây là các card gaming cao cấp thuộc phân khúc Consumer, nhóm \textbf{giữ nguyên}.
 
 \subsection{Bước 4: Loại quan sát không hợp lệ và điền giá trị khuyết}
+\label{sec:buoc_4_dien_khuyết}
 
 Bước này thực hiện hai thao tác tuần tự: (i)~lọc bỏ các dòng thiếu biến phụ thuộc và hãng Intel, (ii)~điền khuyết cho các biến còn lại theo chiến lược đã trình bày tại Bảng~\ref{tab:imputation_strategy} (Phần~2).
 
@@ -236,11 +210,12 @@ Bước này thực hiện hai thao tác tuần tự: (i)~lọc bỏ các dòng 
 
 \begin{minted}{R}
 df_clean <- df %>%
-  filter(!is.na(release_price)) %>%    # Giữ dòng có giá (biến Y)
-  filter(manufacturer != "Intel")       # Loại Intel (không có giá)
+  filter(!is.na(release_price)) %>%        # Giữ dòng có giá (biến Y)
+  filter(manufacturer != "Intel") %>%       # Loại Intel (không có giá)
+  filter(release_price <= price_upper)      # Loại GPU workstation/enterprise
 \end{minted}
 
-Loại bỏ 2.846 dòng thiếu \texttt{release\_price} (không thể điền khuyết cho biến phụ thuộc $Y$) và 4 dòng Intel (toàn bộ thiếu giá). Tập phân tích còn \textbf{556 quan sát}.
+Loại bỏ 2.846 dòng thiếu \texttt{release\_price}, 4 dòng Intel, và 33 GPU Workstation/Enterprise có giá $> \$814$ (ngưỡng Tukey từ Bước~\ref{sec:buoc_3_ngoai_le}). Tập phân tích còn \textbf{523 quan sát}.
 
 \subsubsection*{4.2. Điền khuyết theo vai trò biến}
 
@@ -266,11 +241,12 @@ df_clean <- df_clean %>%
   )
 \end{minted}
 
-\textbf{Trung vị (Median)} được dùng cho biến liên tục (\texttt{tdp}: 2~NA, \texttt{core\_speed}: 79~NA, \texttt{release\_year}: 8~NA) vì bền vững với phân phối lệch phải. \textbf{Yếu vị (Mode)} được dùng cho biến rời rạc (\texttt{memory\_size}: 8~NA, \texttt{memory\_bus}: 5~NA) và biến phân loại để đảm bảo giá trị điền vào luôn là chuẩn phần cứng thực tế.
+Số lượng NA được điền trên 523 quan sát: \texttt{tdp}, \texttt{core\_speed}, \texttt{release\_year} (Median); \texttt{memory\_size}, \texttt{memory\_bus}, \texttt{memory\_type} và \texttt{manufacturer} (Mode) --- theo chiến lược Bảng~\ref{tab:imputation_strategy}.
 
 Sau quy trình, \texttt{colSums(is.na(df\_clean))} xác nhận toàn bộ 8 biến đều có 0~NA --- bộ dữ liệu hoàn toàn sạch, sẵn sàng cho bước mã hóa và chuẩn hóa.
 
 \subsection{Bước 5: Mã hóa biến phân loại}
+\label{sec:buoc_5_ma_hoa}
 
 
 \begin{minted}{R}
@@ -286,6 +262,7 @@ df_clean <- df_clean %>%
 Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor (\texttt{manufacturer}: 2 levels; \texttt{memory\_type}: 6 levels), giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành.
 
 \subsection{Bước 6: Chuẩn hóa dữ liệu (z-score normalization) \& Tương quan Pearson}
+\label{sec:buoc_6_chuan_hoa}
 
 
 \begin{minted}{R}
@@ -311,35 +288,22 @@ sd(df_final$release_price)
 num_vars <- df_final[, c("release_price", "tdp", "memory_size",
                           "memory_bus", "core_speed", "release_year")]
 cor_matrix <- cor(num_vars, use = "complete.obs")
-
-png("figures/correlation_matrix.png", type = "cairo",
-    width = 1600, height = 1400, res = 200)
-n <- ncol(cor_matrix)
-image(1:n, 1:n, t(cor_matrix[n:1, ]),
-      col    = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
-      breaks = seq(-1, 1, length.out = 101),
-      axes = FALSE, xlab = "", ylab = "",
-      main = "Ma trận tương quan Pearson (N = 556)")
-axis(1, at = 1:n, labels = colnames(cor_matrix), las = 2, cex.axis = 0.85)
-axis(2, at = 1:n, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.85)
-for (i in 1:n) for (j in 1:n) {
-  val <- cor_matrix[i, j]
-  text(j, n - i + 1, sprintf("%.2f", val), cex = 0.95,
-       col = ifelse(abs(val) > 0.6, "white", "black"))
-}
-dev.off()
+print(round(cor_matrix, 2))
 \end{minted}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.78\textwidth]{figures/correlation_matrix.png}
-    \caption{Ma trận tương quan Pearson giữa các biến số được chọn ($N = 556$). Sắc đỏ: tương quan dương; sắc xanh: tương quan âm; cường độ màu tỉ lệ với $|r|$.}
+    \caption{Ma trận tương quan Pearson giữa các biến số được chọn ($N = 523$). Sắc đỏ: tương quan dương; sắc xanh: tương quan âm; cường độ màu tỉ lệ với $|r|$.}
     \label{fig:cor_matrix}
 \end{figure}
 
-\textbf{Nhận xét:} \texttt{tdp} có tương quan dương mạnh nhất với giá ($r = 0{,}50$); \texttt{memory\_size} ở mức trung bình ($r = 0{,}34$); \texttt{memory\_bus} có tương quan biên ($r = 0{,}14$) nhưng vẫn đóng vai trò bổ sung trong cấu trúc đa biến. Cặp \texttt{core\_speed}--\texttt{release\_year} tương quan khá cao ($r = 0{,}66$) --- tín hiệu cần kiểm định VIF (Bước~7.1). Hai biến phân loại (\texttt{manufacturer}, \texttt{memory\_type}) được khảo sát riêng qua ANOVA và VIF cho biến giả.
+\begin{sloppypar}
+\textbf{Nhận xét:} \texttt{tdp} có tương quan dương mạnh nhất với giá ($r = 0{,}50$); \texttt{memory\_size} ở mức trung bình ($r = 0{,}34$); \texttt{memory\_bus} có tương quan biên ($r = 0{,}14$) nhưng vẫn đóng vai trò bổ sung trong cấu trúc đa biến. Cặp \texttt{core\_speed}--\texttt{release\_year} tương quan khá cao ($r = 0{,}66$) --- tín hiệu cần kiểm định VIF (Bước~\ref{sec:buoc_7_xay_dung_mo_hinh}). Hai biến phân loại (\texttt{manufacturer}, \texttt{memory\_type}) được khảo sát riêng qua ANOVA và VIF cho biến giả.
+\end{sloppypar}
 
 \subsection{Bước 7: Xây dựng mô hình thống kê}
+\label{sec:buoc_7_xay_dung_mo_hinh}
 
 \subsubsection{7.1. Mô hình hồi quy tuyến tính bội}
 
@@ -368,10 +332,25 @@ memory_type   8.129892  5        1.233129
 release_year  3.598408  1        1.896947
 \end{rconsole}
 
-\texttt{memory\_type} có VIF khoảng 8.12. Đây là bằng chứng để nhóm loại bỏ biến này ra khỏi mô hình chính thức nhằm đảm bảo tính khách quan.
+\texttt{memory\_type} có VIF $= 8{,}12 > 5$: loại biến này và xây lại mô hình cơ sở.
 
-\textbf{7.1.2 Xây dựng mô hình chính thức (Log-Linear)}
+\textbf{7.1.2 Mô hình cơ sở (Y gốc) và kiểm định giả định OLS}
 
+Sau khi loại \texttt{memory\_type}, nhóm xây mô hình cơ sở với biến phụ thuộc là giá gốc để kiểm định các giả định OLS trước khi quyết định có cần biến đổi hay không:
+
+\begin{minted}{R}
+mlr_model_base <- lm(release_price ~ tdp + memory_size + memory_bus +
+                       core_speed + manufacturer + release_year, data = df_final)
+
+print(vif(mlr_model_base))       # Xác nhận VIF < 5
+bp_base <- bptest(mlr_model_base)
+sw_base <- shapiro.test(residuals(mlr_model_base))
+print(bp_base); print(sw_base)
+\end{minted}
+
+Kết quả: $BP = 63{,}43$, $p < 2{,}2 \times 10^{-16}$ --- phương sai sai số không đồng nhất; $W = 0{,}942$, $p < 10^{-12}$ --- phần dư chưa hoàn toàn chuẩn. Cả hai giả định OLS đều vi phạm $\Rightarrow$ áp dụng log-transform lên $Y$ để cải thiện.
+
+\textbf{7.1.3 Mô hình tinh chỉnh Log-Linear}
 
 \begin{minted}{R}
 log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
@@ -380,12 +359,9 @@ log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
 summary(log_model_final)
 \end{minted}
 
-Nhóm sử dụng hàm \texttt{log(release\_price)} thay vì giá gốc. Việc lấy logarit giúp nén các giá trị cực trị (card đồ họa siêu đắt) và giúp sai số của mô hình tuân theo phân phối chuẩn tốt hơn.
+Log-transform cải thiện ổn định phương sai và đưa phần dư gần chuẩn hơn. Kết quả \texttt{summary()} cho thấy tất cả 6 biến đều có ý nghĩa thống kê ($p < 0{,}001$) với $R^2 = 75{,}78\%$. Bảng hệ số chi tiết được trình bày tại Phần~4.
 
-Kết quả \texttt{summary()} cho thấy tất cả 6 biến đều có ý nghĩa thống kê (p $< 0.001$) với $R^2 = 78.54\%$. Bảng hệ số chi tiết được trình bày tại Phần~4.
-
-\textbf{7.1.3 Kiểm định giả định mô hình}
-
+\textbf{7.1.4 Kiểm định lại giả định trên mô hình Log-Linear}
 
 \begin{minted}{R}
 print(vif(log_model_final))
@@ -393,28 +369,11 @@ print(bptest(log_model_final))
 print(shapiro.test(residuals(log_model_final)))
 \end{minted}
 
-\textbf{Breusch-Pagan}: Kiểm tra tính đồng nhất của phương sai sai số. \textbf{Shapiro-Wilk}: Kiểm tra phân phối chuẩn của phần dư. Kết quả: $BP = 99.04$, $p < 2.2 \times 10^{-16}$ (phương sai chưa đồng nhất); $W = 0.948$, $p = 4.056 \times 10^{-13}$ (gần chuẩn hơn OLS nhưng vẫn vi phạm nhẹ). Chi tiết diễn giải tại Phần~4.
+\begin{sloppypar}
+\textbf{Breusch-Pagan}: $BP = 58{,}58$, $p < 2{,}2 \times 10^{-16}$ --- phương sai vẫn chưa hoàn toàn đồng nhất nhưng cải thiện so với mô hình gốc ($BP = 63{,}43$). \textbf{Shapiro-Wilk}: $W = 0{,}946$, $p = 7{,}537 \times 10^{-13}$ --- tương đương mô hình gốc ($W = 0{,}942$). Mô hình log-linear được chọn làm mô hình chính thức vì $R^2$ cao hơn ($75{,}78\%$ vs $72{,}73\%$) và hệ số có ý nghĩa kinh tế trực tiếp; diễn giải chi tiết tại Phần~4.
+\end{sloppypar}
 
-\textbf{7.1.4 Biểu đồ so sánh giá thực tế với giá dự đoán}
-
-Dùng \texttt{exp()} để đưa log-giá dự đoán về lại đơn vị USD, sau đó vẽ scatter plot so sánh với giá thực:
-
-\begin{minted}{R}
-predicted_values <- exp(predict(log_model_final))
-actual_values    <- df_final$release_price
-
-png("figures/scatter_actual_vs_predicted.png", type = "cairo",
-    width = 700, height = 600, res = 120)
-plot(actual_values, predicted_values,
-     main = "Biểu đồ so sánh giá thực tế với giá dự đoán",
-     xlab = "Giá thực tế (USD)",
-     ylab = "Giá dự đoán (USD)",
-     pch = 19, col = rgb(0.2, 0.4, 0.6, 0.5))
-abline(0, 1, col = "red", lwd = 2)   # Đường lý tưởng y = x
-dev.off()
-\end{minted}
-
-Biểu đồ so sánh giá thực tế với giá dự đoán được trình bày và phân tích chi tiết tại Hình~\ref{fig:scatter_pred} (Phần~4).
+Giá dự đoán được khôi phục về đơn vị USD bằng \texttt{exp(predict(log\_model\_final))} và so sánh trực quan với giá thực tế qua Hình~\ref{fig:scatter_pred} (Phần~4).
 
 
 

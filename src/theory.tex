@@ -1,5 +1,7 @@
+% !TEX root = main.tex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Cơ sở Lý thuyết}
+\label{sec:co_so_ly_thuyet}
 
 \subsection{Định giá GPU: Hiệu năng, thương hiệu và thời gian}
 
@@ -22,9 +24,10 @@ Dữ liệu phần cứng GPU mang một số đặc thù quan trọng cần lư
   \item \textbf{Đặc tính rời rạc của bộ nhớ:} Các biến số như băng thông bộ nhớ (\texttt{Memory\_Bus}) và dung lượng bộ nhớ (\texttt{Memory}) mang bản chất là các biến \textbf{rời rạc}. Chúng chỉ tồn tại theo các chuẩn phần cứng nhất định (ví dụ: bus 64/128/256/512 bit; dung lượng 2/4/8/16~GB). Dù vậy, nhờ có nhiều mức độ phân biệt và tính thứ tự, chúng vẫn có thể được xử lý xấp xỉ như biến số liên tục trong các phương trình hồi quy.
   \item \textbf{Sự phân mảnh nhãn thương hiệu (ATI và AMD):} ATI Technologies là tên cũ của bộ phận GPU của AMD trước khi bị thâu tóm vào năm 2006. Do đó, dữ liệu thô chứa song song hai nhãn \texttt{"ATI"} và \texttt{"AMD"} cho cùng một dòng sản phẩm. Hai nhãn này thực chất cần được gộp chung thành một thực thể thương hiệu duy nhất.
   \item \textbf{Sự khuyết thiếu dữ liệu giá của Intel:} Toàn bộ các GPU của hãng Intel trong bộ dữ liệu thô đều thiếu thông tin về biến phụ thuộc là giá phát hành (\texttt{Release\_Price}), do đó các sản phẩm này không thể được sử dụng trong việc xây dựng mô hình định giá và cần loại bỏ hoàn toàn.
+  \item \textbf{Các sản phẩm có cấu trúc định giá dị biệt:} Dữ liệu chứa một số nhóm sản phẩm có cơ chế định giá nằm ngoài quy luật phần cứng thông thường. Điển hình như: GPU Workstation (Quadro/FirePro) định giá theo chứng chỉ phần mềm; các cấu hình kép (Crossfire/Dual Core) bị cộng dồn thông số nhưng bán theo combo; các bản độ tản nhiệt nước cao cấp (Hydro Copper); hoặc sản phẩm tin đồn chưa từng ra mắt (not released). Nếu không được thanh lọc cẩn thận, nhóm dữ liệu dị biệt này sẽ gây nhiễu nặng nề cho phương trình dự báo của thị trường Consumer.
 \end{itemize}
 
-\subsection{Chiến lược thu hẹp không gian đặc trưng}
+\subsection{Thu hẹp không gian đặc trưng}
 
 Đưa toàn bộ 34 thuộc tính vào mô hình không những không cải thiện khả năng dự đoán mà còn làm giảm chất lượng: biến trùng lặp gây đa cộng tuyến (hệ số $\hat{\beta}$ không ổn định), biến không liên quan thêm nhiễu và tăng phương sai ước lượng. Nhóm giải quyết vấn đề này bằng quy trình sàng lọc \textbf{ba tầng khách quan} --- mỗi tầng nhắm đến một nguồn nhiễu hoàn toàn khác nhau:
 
@@ -41,17 +44,17 @@ Dữ liệu phần cứng GPU mang một số đặc thù quan trọng cần lư
 ]
   \node[tier=gray!12] (t0) {Không gian đặc trưng ban đầu: \textbf{34 thuộc tính}};
 
-  \node[tier=red!10, below=0.7cm of t0] (t1)
-    {\textbf{Tầng 1:} Loại biến thiếu dữ liệu nghiêm trọng ($> 30\%$)};
-  \node[note, right=0.6cm of t1] {Không thể phục hồi\\bằng imputation\\chuẩn};
+  \node[tier=yellow!18, below=0.7cm of t0] (t1)
+    {\textbf{Tầng 1:} Loại biến không liên quan kinh tế đến giá};
+  \node[note, right=0.6cm of t1] {Định danh sản phẩm,\\API phần mềm,\\cờ nhị phân mất cân bằng};
 
   \node[tier=orange!12, below=0.7cm of t1] (t2)
     {\textbf{Tầng 2:} Loại biến dẫn xuất hoặc thông tin trùng lặp};
   \node[note, right=0.6cm of t2] {Nguy cơ đa cộng\\tuyến (VIF cao)};
 
-  \node[tier=yellow!18, below=0.7cm of t2] (t3)
-    {\textbf{Tầng 3:} Loại biến không liên quan kinh tế đến giá};
-  \node[note, right=0.6cm of t3] {Định danh sản phẩm,\\API phần mềm,\\cờ nhị phân mất cân bằng};
+  \node[tier=red!10, below=0.7cm of t2] (t3)
+    {\textbf{Tầng 3:} Loại biến thiếu dữ liệu nghiêm trọng ($> 30\%$)};
+  \node[note, right=0.6cm of t3] {Xác định thực nghiệm\\qua phân tích\\tỷ lệ khuyết (Section~\ref{sec:code_xu_ly_du_lieu})};
 
   \node[tier=green!15, below=0.7cm of t3] (t4)
     {Tập đặc trưng chính thức: \textbf{8 biến}};
@@ -66,7 +69,81 @@ Dữ liệu phần cứng GPU mang một số đặc thù quan trọng cần lư
 \label{fig:filter_strategy}
 \end{figure}
 
-\noindent\textbf{Tầng 1} xử lý vấn đề \textit{dữ liệu không đầy đủ}: biến thiếu hơn 30\% không thể phục hồi bằng kỹ thuật imputation thông thường mà không bóp méo phân phối thực tế. \textbf{Tầng 2} giải quyết \textit{thông tin dư thừa}: khi hai biến mang gần như cùng một nội dung (ví dụ: \texttt{Memory\_Bandwidth} là hàm số trực tiếp của \texttt{Memory\_Bus}), mô hình không thể tách biệt tác động của từng biến một cách đáng tin cậy. \textbf{Tầng 3} áp dụng tiêu chí \textit{ngữ nghĩa kinh tế}: các cột định danh sản phẩm hay thông số API phần mềm không có cơ chế tác động đến giá thành. Danh sách đầy đủ các biến bị loại và kết quả kiểm chứng bằng ma trận tương quan được trình bày trong Phần~\ref{sec:phan_tich_bien}.
+Tầng~1 và Tầng~2 có thể xác định hoàn toàn bằng lý luận trước khi nhìn vào dữ liệu. Tầng~3 cần đo tỷ lệ khuyết thực tế và được giải quyết trong Section~\ref{sec:buoc_1_tai_du_lieu} (Phần~\ref{sec:code_xu_ly_du_lieu}).
+
+\renewcommand{\arraystretch}{1.35}
+\begin{table}[H]
+\centering
+\caption{Tầng 1 --- 14 biến bị loại do không có ý nghĩa kinh tế}
+\label{tab:tier1_vars}
+\small
+\begin{tabular}{|p{5.2cm}|p{3.5cm}|p{5.5cm}|}
+\hline
+\textbf{Biến bị loại} & \textbf{Nội dung} & \textbf{Lý do cụ thể} \\
+\hline
+\texttt{Name}, \texttt{Architecture}
+  & Nhãn định danh sản phẩm 
+  & Không phải đặc tính kỹ thuật định lượng, không có cơ chế trực tiếp tác động đến chi phí sản xuất. \\
+\hline
+\texttt{DVI\_Connection}, \texttt{HDMI\_Connection}, \texttt{VGA\_Connection}
+  & Đặc tả cổng đầu ra hiển thị 
+  & Số lượng và loại cổng phụ thuộc vào phân khúc sản phẩm, không phản ánh hiệu năng GPU. \\
+\hline
+\texttt{Direct\_X}, \texttt{Open\_GL}
+  & Phiên bản API đồ họa 
+  & Hoàn toàn phụ thuộc vào driver phần mềm và thế hệ kiến trúc, không phản ánh sức mạnh phần cứng thực. \\
+\hline
+\texttt{Best\_Resolution}, \texttt{Resolution\_WxH}, \texttt{Power\_Connector}
+  & Thông số hiển thị và loại đầu nối nguồn 
+  & Dẫn xuất gián tiếp từ cấu hình phần cứng, không mang thêm thông tin độc lập về giá trị GPU. \\
+\hline
+\texttt{Dedicated}, \texttt{Integrated}, \texttt{Notebook\_GPU}, \texttt{SLI\_Crossfire}
+  & Số nhị phân mất cân bằng nặng 
+  & Gần như toàn bộ mẫu thuộc cùng một nhãn (ví dụ: $>$98\% là GPU dedicated), biến không mang thông tin phân biệt. \\
+\hline
+\end{tabular}
+\end{table}
+
+\renewcommand{\arraystretch}{1.35}
+\begin{table}[H]
+\centering
+\caption{Tầng 2 --- 9 biến bị loại do thông tin dư thừa (nguy cơ đa cộng tuyến)}
+\label{tab:tier2_vars}
+\small
+\begin{tabular}{|p{3.5cm}|p{6.8cm}|p{3.2cm}|}
+\hline
+\textbf{Biến bị loại} & \textbf{Quan hệ dư thừa} & \textbf{Biến giữ lại liên quan} \\
+\hline
+\texttt{Memory\_Bandwidth}
+  & $= \texttt{Memory\_Bus} \times \texttt{Memory\_Speed}$ --- hoàn toàn xác định bởi hai biến kia.
+  & \texttt{Memory\_Bus} \\
+\hline
+\texttt{Pixel\_Rate}
+  & $= \texttt{ROPs} \times \texttt{Core\_Speed}$ --- tốc độ lấp đầy pixel, dẫn xuất trực tiếp.
+  & \texttt{Core\_Speed} \\
+\hline
+\texttt{Texture\_Rate}
+  & $= \texttt{TMUs} \times \texttt{Core\_Speed}$ --- tốc độ ánh xạ texture, dẫn xuất trực tiếp.
+  & \texttt{Core\_Speed} \\
+\hline
+\texttt{Shader}, \texttt{TMUs}, \texttt{ROPs}
+  & Số đơn vị tính toán tăng theo xung nhịp và thế hệ kiến trúc; tương quan cấu trúc cao với \texttt{Core\_Speed}.
+  & \texttt{Core\_Speed} \\
+\hline
+\texttt{Memory\_Speed}
+  & Tốc độ xung nhịp VRAM; cùng với \texttt{Memory\_Bus} xác định băng thông --- đưa cả hai vào mô hình gây đa cộng tuyến.
+  & \texttt{Memory\_Bus} \\
+\hline
+\texttt{Process}
+  & Kích thước tiến trình litho (nm) giảm đơn điệu theo năm phát hành; tác động đã được nắm bắt bởi \texttt{Release\_Date}.
+  & \texttt{Release\_Date} \\
+\hline
+\texttt{L2\_Cache}
+  & Dung lượng cache tỷ lệ với băng thông bộ nhớ và độ phức tạp lõi xử lý.
+  & \texttt{Memory\_Bus}, \texttt{Core\_Speed} \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Tiền xử lý dữ liệu}
 
@@ -86,7 +163,7 @@ Trước khi xử lý ngoại lệ hay điền khuyết, bộ dữ liệu thô c
 
 Một nguyên tắc dễ bị vi phạm: \textbf{ranh giới IQR phải được tính trên tập dữ liệu gốc}, trước khi điền khuyết. Nếu điền trung vị cho hàng trăm ô trống trước, khoảng tứ phân vị sẽ co lại giả tạo, dẫn đến nhiều quan sát bình thường bị gán nhầm là ngoại lệ và phương pháp Tukey mất đi ý nghĩa.
 
-Ngoài thứ tự, còn có câu hỏi: \textit{có nên loại ngoại lệ sau khi phát hiện không?} Với dữ liệu phần cứng, GPU Quadro giá \$14.999 hay card công suất 500W không phải sai số nhập liệu, mà chúng là thực tế của thị trường workstation. Giữ lại những quan sát này giúp mô hình phản ánh toàn bộ phổ sản phẩm, thay vì chỉ tối ưu cho phân khúc phổ thông.
+Ngoài thứ tự, còn có câu hỏi: \textit{có nên loại ngoại lệ sau khi phát hiện không?} Với dữ liệu phần cứng, GPU Quadro giá \$14.999 hay card workstation công suất 500W không phải sai số nhập liệu --- chúng tồn tại thực tế, nhưng thuộc \textbf{quần thể hoàn toàn khác}: phân khúc Workstation/Enterprise (Quadro, Tesla) được định giá theo chứng chỉ phần mềm ISV, bộ nhớ ECC và hỗ trợ doanh nghiệp B2B --- những yếu tố không có trong 8 biến phần cứng của bộ dữ liệu. Nếu giữ lại, mô hình bị ép giải thích khoảng giá \$23--\$14.999 chỉ từ thông số phần cứng không đủ, gây vi phạm giả định OLS và sai lệch dự đoán cho phân khúc người dùng phổ thông --- đúng mục tiêu đề tài. Do đó, nhóm quyết định \textbf{loại bỏ} các quan sát vượt ngưỡng Tukey ($> Q_3 + 1{,}5 \times \mathrm{IQR} = \$814$, tính trên tập thô), giới hạn phạm vi nghiên cứu trong phân khúc Consumer/Prosumer.
 
 \subsubsection{Chiến lược điền khuyết theo vai trò biến}
 
@@ -146,20 +223,14 @@ Sau khi dữ liệu đã được làm sạch và chuẩn hóa, bước tiếp t
 \]
 Mô hình này được dùng làm bước đệm để đánh giá chất lượng các biến độc lập thông qua việc kiểm tra \textbf{đa cộng tuyến} (hệ số phóng đại phương sai - VIF). Chỉ những biến đáp ứng điều kiện an toàn ($\text{VIF} < 5$) mới được giữ lại để tránh hiện tượng chồng chéo thông tin.
 
-Tiếp theo, để đánh giá độ tin cậy của mô hình, nhóm tiến hành kiểm định hai giả định bắt buộc của phương pháp OLS: phương sai sai số đồng nhất (kiểm định Breusch-Pagan) và phần dư có phân phối chuẩn (kiểm định Shapiro-Wilk). 
+Tiếp theo, để đánh giá khách quan, nhóm tiến hành kiểm định hai giả định của phương pháp OLS: phương sai sai số đồng nhất (kiểm định Breusch-Pagan) và phần dư có phân phối chuẩn (kiểm định Shapiro-Wilk) trên mô hình tuyến tính cơ sở.
 
-Sau kiểm định, một trong hai kịch bản sẽ xảy ra:
-\begin{itemize}
-    \item \textbf{Nếu thỏa mãn giả định:} Mô hình cơ sở sẽ được chọn làm mô hình chính thức.
-    \item \textbf{Nếu vi phạm giả định:} Trong trường hợp này, nhóm áp dụng \textbf{phép biến đổi logarit tự nhiên} lên biến phụ thuộc để tạo thành mô hình Log-Linear tinh chỉnh:
+Tuy nhiên, dù mô hình OLS cơ sở có đạt hay không đạt kiểm định, đặc thù của thị trường thiết bị công nghệ là mức giá thường biến động theo \textbf{tỷ lệ phần trăm} (multiplicative) thay vì cộng gộp tuyệt đối (additive). Ví dụ: việc tăng thêm 2GB VRAM sẽ có tác động về giá trên một card trị giá \$1000 hoàn toàn khác so với trên một card trị giá \$200. Do đó, để \textbf{tối ưu hóa mô hình}, nhóm chủ động áp dụng \textbf{phép biến đổi logarit tự nhiên} lên biến phụ thuộc để tạo thành mô hình Log-Linear:
 \[
   \log(Y) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
 \]
-\end{itemize}
 
-Khi quan sát dữ liệu, nhóm nhận thấy đặc thù giá GPU có thể bị kéo lệch phải bởi các mẫu flagship đắt tiền, rất dễ vi phạm giả định. Tuy nhiên, đây chỉ là nhận định định tính. Chúng ta vẫn sẽ thực hiện kiểm định để có kết luận chính xác nhất.
-
-Việc chuyển sang mô hình $\log(Y)$ giúp nén đuôi phải của dữ liệu, đưa phân phối về dạng chuẩn hơn và ổn định phương sai. Về mặt ý nghĩa thực tế, các hệ số trong mô hình Log-Linear rất dễ diễn giải: khi một thông số $X_i$ tăng thêm 1 đơn vị, giá GPU sẽ thay đổi xấp xỉ $(e^{\beta_i} - 1) \times 100\%$. Mô hình tinh chỉnh sau đó sẽ được sử dụng làm cơ sở để rút ra kết luận cuối cùng.
+Việc nâng cấp lên mô hình $\log(Y)$ mang lại lợi ích kép: về mặt thống kê, nó giúp nén đuôi phải của dữ liệu (do các mẫu flagship đắt tiền tạo ra), đưa phân phối về dạng đối xứng hơn và xoa dịu các dao động phương sai. Về mặt ý nghĩa thực tiễn, các hệ số trong mô hình Log-Linear rất sắc bén và trực quan: khi một thông số $X_i$ tăng thêm 1 đơn vị (sau chuẩn hóa), giá GPU sẽ thay đổi xấp xỉ $(e^{\beta_i} - 1) \times 100\%$. Mô hình tối ưu này sẽ được sử dụng làm cơ sở để rút ra kết luận cuối cùng.
 
 \subsubsection{Phân tích Phương sai Welch's ANOVA}
 
@@ -194,24 +265,23 @@ Toàn bộ lộ trình --- từ tập dữ liệu thô đến mô hình log-line
 \node[box] (b1) {Bước 1: Tải dữ liệu \&\\Chọn lọc 8 biến (N=3.406)};
 \node[box, below=of b1] (b2) {Bước 2: Chọn lọc, đổi tên \&\\Gộp nhãn thương hiệu AMD};
 \node[box, below=of b2] (b3) {Bước 3: Nhận diện ngoại lệ\\(IQR trên tập gốc)};
-\node[box, below=of b3] (b4) {Bước 4: Loại NA, Intel (N=556)\\\& Điền khuyết Mode/Median};
+\node[box, below=of b3] (b4) {Bước 4: Loại NA, Intel, workstation\\(N=523) \& Điền khuyết Mode/Median};
 \node[box, below=of b4] (b5) {Bước 5: Mã hóa Factor\\(Biến phân loại)};
 \node[box, below=of b5] (b6) {Bước 6: Chuẩn hóa Z-Score\\\& Tương quan Pearson};
 
 % --- KHỐI 2 (Cột phải) ---
-\node[box, right=2.8cm of b1] (b71_1) {Bước 7.1: Hồi quy MLR\\(Mô hình cơ sở)};
+\node[box, right=2.8cm of b1] (b71_1) {Bước 7.1: Hồi quy MLR\\(Mô hình cơ sở N=523)};
 \node[diamond_box, below=0.6cm of b71_1] (d1) {Đạt chuẩn\\VIF $< 5$?};
 \node[small_box, right=1.2cm of d1] (drop1) {Loại biến nhiễu\\\texttt{memory\_type}};
-\node[box, below=0.6cm of d1] (b71_test) {Kiểm định giả định OLS\\(BP, Shapiro)};
-\node[diamond_box, below=0.6cm of b71_test] (d2) {Thỏa mãn\\giả định?};
-\node[small_box, right=1.2cm of d2] (b71_log) {Tinh chỉnh mô hình\\(Log-Linear)};
-\node[box, below=0.6cm of d2] (b72) {Bước 7.2: Phân tích\\Welch's ANOVA};
+\node[box, below=0.6cm of d1] (b71_test) {Chuyển đổi Log-Linear \&\\Lọc Residual Outliers};
+\node[box, below=0.6cm of b71_test] (b71_log) {Mô hình Final (N=514)\\Đạt độ tối ưu $R^2 \approx 83\%$};
+\node[box, below=0.6cm of b71_log] (b72) {Bước 7.2: Phân tích\\Welch's ANOVA};
 \node[box, below=0.6cm of b72] (b_final) {Chốt mô hình \& Kết luận\\câu hỏi nghiên cứu};
 
 % Backgrounds
 \begin{scope}[on background layer]
     \node[bg_box, fit=(b1) (b6)] (bg1) {};
-    \node[bg_box, fit=(b71_1) (drop1) (d1) (b71_test) (d2) (b71_log) (b72) (b_final)] (bg2) {};
+    \node[bg_box, fit=(b71_1) (drop1) (d1) (b71_test) (b71_log) (b72) (b_final)] (bg2) {};
 \end{scope}
 
 % Block Labels
@@ -234,12 +304,8 @@ Toàn bộ lộ trình --- từ tập dữ liệu thô đến mô hình log-line
 \draw[rounded corners=8pt, ->] (drop1.north) |- (b71_1.east); 
 
 \draw[->] (d1) -- node[midway, left, font=\scriptsize] {Có} (b71_test);
-\draw[->] (b71_test) -- (d2);
-
-\draw[->] (d2) -- node[midway, above, font=\scriptsize] {Không} (b71_log);
-\draw[->] (d2) -- node[midway, left, font=\scriptsize] {Có} (b72);
-\draw[rounded corners=8pt, ->] (b71_log.north) |- (b71_test.east);
-
+\draw[->] (b71_test) -- (b71_log);
+\draw[->] (b71_log) -- (b72);
 \draw[->] (b72) -- (b_final);
 
 \end{tikzpicture}

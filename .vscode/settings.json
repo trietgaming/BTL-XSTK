@@ -7,27 +7,27 @@
     {
       "name": "pdflatex",
       "command": "pdflatex",
-      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
+      "args": ["-shell-escape", "-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
     },
     {
       "name": "pdflatex-draft",
       "command": "pdflatex",
-      "args": ["-synctex=1", "-interaction=batchmode", "-draftmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
+      "args": ["-shell-escape", "-synctex=1", "-interaction=batchmode", "-draftmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
     },
     {
       "name": "latexmk",
       "command": "latexmk",
-      "args": ["-pdf", "-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-outdir=%OUTDIR%", "%DOC%"]
+      "args": ["-pdf", "-shell-escape", "-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-outdir=%OUTDIR%", "%DOC%"]
     },
     {
       "name": "xelatex",
       "command": "xelatex",
-      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
+      "args": ["-shell-escape", "-synctex=1", "-interaction=nonstopmode", "-file-line-error", "-output-directory=%OUTDIR%", "%DOC%"]
     },
     {
       "name": "lualatex",
       "command": "lualatex",
-      "args": ["-synctex=1", "-interaction=nonstopmode", "-output-directory=%OUTDIR%", "%DOC%"]
+      "args": ["-shell-escape", "-synctex=1", "-interaction=nonstopmode", "-output-directory=%OUTDIR%", "%DOC%"]
     },
     {
       "name": "bibtex",
