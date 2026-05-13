@@ -3,32 +3,32 @@ library(car)
 library(lmtest)
 library(dplyr)
 
-# Set working directory về thư mục chứa script
+# Thiết lập thư mục làm việc về vị trí chứa script
 local({
   file_flag <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
   if (length(file_flag) > 0) {
-    # Rscript: dùng --file= arg
+    # Rscript: sử dụng đối số --file=
     setwd(dirname(normalizePath(sub("^--file=", "", file_flag[1]))))
   } else if (!file.exists("All_GPUs.csv") && file.exists("src/All_GPUs.csv")) {
-    # VSCode interactive từ workspace root: nhảy vào src/
+    # VSCode interactive từ gốc workspace: di chuyển vào thư mục src/
     setwd("src")
   }
 })
 
 # BƯỚC 1: TẢI VÀ KHẢO SÁT SƠ BỘ DỮ LIỆU
-# Đọc file dữ liệu thô
+# Đọc file dữ liệu thô: 3.406 quan sát x 34 biến
 raw_data <- read.csv("All_GPUs.csv",
   stringsAsFactors = FALSE,
 )
 
-# Khảo sát sơ bộ dữ liệu (Chạy các dòng này để xem kết quả trên console)
+# Khảo sát sơ bộ dữ liệu (Bỏ comment để xem kết quả trên console)
 # str(raw_data)
 # summary(raw_data)
 # print(colSums(is.na(raw_data)))
 
-# NEW FLOW START HERE
+# QUY TRÌNH XỬ LÝ MỚI BẮT ĐẦU TỪ ĐÂY
 
-# --------- INITIAL VAR SELECT ----------
+# --------- CHỌN LỌC BIẾN BAN ĐẦU ----------
 
 kept_vars <- c(
   "Name", "Release_Price", "Max_Power", "Memory", "Memory_Bandwidth",
@@ -36,12 +36,13 @@ kept_vars <- c(
 )
 
 # ==========================================================
-# VẼ BIỂU ĐỒ MISSING DATA (Tỷ lệ khuyết)
+# VẼ BIỂU ĐỒ TỶ LỆ DỮ LIỆU KHUYẾT (MISSING DATA)
 # ==========================================================
 if (!dir.exists("figures")) {
   dir.create("figures")
 }
 
+# Đếm NA và các chuỗi rỗng/không hợp lệ
 missing_count <- sapply(raw_data, function(col) {
   if (is.character(col)) {
     cleaned <- str_trim(col)
@@ -59,6 +60,7 @@ missing_df <- data.frame(
 )
 missing_df <- missing_df[order(-missing_df$pct), ]
 
+# Phân loại biến để trực quan hóa
 other_vars <- missing_df[!missing_df$kept & missing_df$pct < 30, ]
 avg_other_pct <- mean(other_vars$pct)
 other_count <- nrow(other_vars)
@@ -72,6 +74,7 @@ missing_df_plot <- rbind(
   )
 )
 
+# Thiết lập màu sắc cho biểu đồ (Xanh: Giữ, Đỏ: Loại >= 30%, Xám: Khác)
 bar_colors_plot <- with(
   missing_df_plot,
   ifelse(kept, "#2c7fb8",
@@ -79,6 +82,7 @@ bar_colors_plot <- with(
   )
 )
 
+# Xuất biểu đồ tỷ lệ dữ liệu khuyết
 png("figures/missing_data_ratio.png",
   type = "cairo",
   width = 2400, height = 1400, res = 300
@@ -104,9 +108,9 @@ cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
 
 selected_data <- raw_data %>% select(all_of(kept_vars))
 
-# -------- CLEANING -----------
+# -------- LÀM SẠCH DỮ LIỆU -----------
 
-# Replace all empty strings, hyphens, and "N/A" with NA for all character columns and remove leading/trailing whitespace
+# Thay thế các chuỗi rỗng, dấu gạch ngang và "N/A" thành giá trị NA thực sự
 selected_data <- selected_data %>%
   mutate(across(
     where(is.character),
@@ -114,33 +118,33 @@ selected_data <- selected_data %>%
   ))
 
 
-# REMOVE ALL INTEL GPUS, THIS TIME (2017) INTEL DOESN'T CONTRIBUTE MUCH TO GPU MARKET, SO REMOVE COMPLETELY
+# Loại bỏ các GPU của Intel (Tại thời điểm 2017 Intel chưa đóng góp nhiều vào thị trường card rời)
 clean_data <- selected_data %>% filter(Manufacturer != "Intel")
 
-# Remove all Empty Release_Price rows
+# Loại bỏ các dòng không có giá niêm yết (biến phụ thuộc Y)
 clean_data <- clean_data %>% filter(!is.na(Release_Price))
 
-# Replace "ATI" with "AMD" in Manufacturer column
+# Đồng nhất nhãn: chuyển "ATI" thành "AMD"
 clean_data <- clean_data %>%
   mutate(Manufacturer = str_replace(Manufacturer, "ATI", "AMD"))
 
-# Remove irrelevant GPU models (Quadro, Crossfire, SLI, not released, Titan)
+# Loại bỏ các mẫu GPU không phù hợp (Quadro, Crossfire, SLI, chưa phát hành, Titan)
 clean_data <- clean_data %>%
   filter(!str_detect(Name, regex("Quadro|Crossfire|SLI|not[ .]released|Titan", ignore_case = TRUE)))
 
 num_row_clean <- nrow(clean_data)
 
-cat("Dữ liệu sau khi làm sạch: N =", num_row_clean, "\n")
+cat("Dữ liệu sau khi làm sạch sơ bộ: N =", num_row_clean, "\n")
 
 
-# ------------ Parsing Year and Columns with Units --------------
+# ------------ Xử lý Năm phát hành và Trích xuất số từ chuỗi --------------
 
-# Extract Year from Release_Date And rename to Release_Year and remove Release_Date
+# Tách Năm từ cột Release_Date, đổi tên thành Release_Year và xóa cột gốc
 clean_data <- clean_data %>%
   mutate(Release_Year = as.integer(format(as.Date(Release_Date, "%d-%b-%Y"), "%Y"))) %>%
   select(-Release_Date)
 
-# Extract numeric values from columns with units and convert to numeric type
+# Trích xuất giá trị số từ các cột có đơn vị (MHz, MB, Watt...)
 clean_data <- clean_data %>%
   mutate(
     Release_Price = as.numeric(str_extract(Release_Price, "\\d+\\.?\\d*")),
@@ -150,7 +154,7 @@ clean_data <- clean_data %>%
     Core_Speed = as.numeric(str_extract(Core_Speed, "\\d+\\.?\\d*"))
   )
 
-# ------ Convert strings to factors ------
+# ------ Chuyển đổi các biến định danh sang kiểu Factor ------
 
 clean_data <- clean_data %>%
   mutate(
@@ -158,8 +162,8 @@ clean_data <- clean_data %>%
     Memory_Type = as.factor(Memory_Type)
   )
 
-# ------------------ OUTLIER DETECTION (RANH GIỚI TUKEY) -----------------
-cat("\n--- NHẬN DIỆN NGOẠI LẠI (Tukey 1.5 * IQR) ---\n")
+# ------------------ NHẬN DIỆN NGOẠI LAI (RANH GIỚI TUKEY) -----------------
+cat("\n--- NHẬN DIỆN NGOẠI LAI (Tukey 1.5 * IQR) ---\n")
 calc_tukey <- function(vec) {
   v <- na.omit(vec)
   q1 <- quantile(v, 0.25)
@@ -182,18 +186,18 @@ cat(sprintf(
   outliers_count, price_bnd$upper
 ))
 
-# Vẽ Boxplot quan sát ngoại lai
+# Trực quan hóa ngoại lai qua Boxplot
 if (!dir.exists("figures")) dir.create("figures")
 png("figures/boxplot_outliers.png", type = "cairo", width = 1600, height = 800, res = 200)
 par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
 boxplot(clean_data$Release_Price,
-  main = "Phân phối giá (Scale gốc)",
+  main = "Phân phối giá (Thang đo gốc)",
   col = "lightblue", ylab = "USD", outline = TRUE
 )
 abline(h = price_bnd$upper, col = "red", lty = 2, lwd = 2)
 
 boxplot(clean_data$Release_Price,
-  main = "Phân phối giá (Log-scale)",
+  main = "Phân phối giá (Thang đo Log)",
   col = "lightgreen", ylab = "USD (log scale)", log = "y", outline = TRUE
 )
 abline(h = price_bnd$upper, col = "red", lty = 2, lwd = 2)
@@ -201,7 +205,7 @@ par(mfrow = c(1, 1))
 dev.off()
 cat("--- Đã xuất figures/boxplot_outliers.png ---\n")
 
-# BẬT TẮT CHẾ ĐỘ LOẠI BỎ NGOẠI LAI (True = Xóa, False = Giữ lại)
+# Cấu hình BẬT/TẮT chế độ loại bỏ ngoại lai (True = Xóa, False = Giữ lại)
 REMOVE_OUTLIERS <- TRUE
 if (REMOVE_OUTLIERS) {
   clean_data <- clean_data %>% filter(Release_Price <= price_bnd$upper | is.na(Release_Price))
@@ -210,8 +214,8 @@ if (REMOVE_OUTLIERS) {
   cat("=> Quyết định GIỮ LẠI các ngoại lai để huấn luyện mô hình.\n")
 }
 
-# ---------------- Split Training and Testing Set (9/1 ratio) -----------
-set.seed(2026252) # For reproducibility
+# ---------------- Chia tập dữ liệu Huấn luyện và Kiểm tra (tỷ lệ 9:1) -----------
+set.seed(2026252) # Đảm bảo tính tái lập kết quả
 train_indices <- sample(1:nrow(clean_data), size = 0.9 * nrow(clean_data))
 
 train_data <- clean_data[train_indices, ]
@@ -219,8 +223,8 @@ test_data <- clean_data[-train_indices, ]
 
 cat("Dữ liệu sau khi chia: Train (N = ", nrow(train_data), "), Test (N = ", nrow(test_data), ")\n", sep = "")
 
-# ------------------ IMPUTATION  -----------------
-# 1. Trích xuất VRAM trực tiếp từ cột Name (Feature Extraction)
+# ------------------ ĐIỀN KHUYẾT DỮ LIỆU (IMPUTATION) -----------------
+# 1. Trích xuất dung lượng VRAM trực tiếp từ tên GPU (Feature Extraction)
 extract_vram <- function(df) {
   df %>%
     mutate(
@@ -235,13 +239,13 @@ extract_vram <- function(df) {
 train_data <- extract_vram(train_data)
 test_data <- extract_vram(test_data)
 
-# 2. Fallback: Điền Mode/Median bằng tham số từ tập Train (Tránh Data Leakage)
+# 2. Phương án dự phòng: Điền Mode/Median bằng tham số từ tập Train (Tránh rò rỉ dữ liệu - Data Leakage)
 get_mode <- function(v) {
   uniqv <- unique(na.omit(v))
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
-# TÍNH TOÁN THAM SỐ IMPUTATION TỪ TẬP TRAIN
+# Tính toán các tham số điền khuyết dựa trên tập huấn luyện (Train)
 impute_params <- list(
   Memory = get_mode(train_data$Memory),
   Memory_Type = get_mode(train_data$Memory_Type),
@@ -252,7 +256,7 @@ impute_params <- list(
   Memory_Bandwidth = median(train_data$Memory_Bandwidth, na.rm = TRUE)
 )
 
-# HÀM ÁP DỤNG THAM SỐ ĐIỀN NA
+# Hàm áp dụng các tham số đã tính để điền giá trị NA
 apply_imputation <- function(df, params) {
   df %>% mutate(
     Memory = replace(Memory, is.na(Memory), params$Memory),
@@ -265,38 +269,38 @@ apply_imputation <- function(df, params) {
   )
 }
 
-# Áp dụng cho cả 2 tập dữ liệu
+# Áp dụng điền khuyết cho cả hai tập dữ liệu
 train_data <- apply_imputation(train_data, impute_params)
 test_data <- apply_imputation(test_data, impute_params)
 
-# In ra số dòng NA sau khi xử lý
-cat("Số dòng NA của train_data sau imputation:\n")
+# Kiểm tra số lượng giá trị NA sau khi xử lý
+cat("Số dòng NA của train_data sau khi điền khuyết:\n")
 cat(paste(names(train_data), colSums(is.na(train_data)), sep = ": ", collapse = ", "), "\n")
-cat("Số dòng NA của test_data sau imputation:\n")
+cat("Số dòng NA của test_data sau khi điền khuyết:\n")
 cat(paste(names(test_data), colSums(is.na(test_data)), sep = ": ", collapse = ", "), "\n")
 
-# ------------------ PRE-TRANSFORMATION -----------------
-# Lấy log của Bandwidth TRƯỚC khi chuẩn hóa để tránh lỗi log số âm
+# ------------------ TIỀN BIẾN ĐỔI DỮ LIỆU -----------------
+# Thực hiện Log-transform cho biến Bandwidth trước khi chuẩn hóa
 train_data <- train_data %>% mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
 test_data <- test_data %>% mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
 
 
-# ------------------ MLR vs Log-Linear ---------
-# 1A. Xây dựng model MLR cơ bản (Linear)
+# ------------------ SO SÁNH MÔ HÌNH MLR VÀ LOG-LINEAR ---------
+# 1A. Xây dựng mô hình hồi quy tuyến tính bội cơ bản (Linear)
 mlr_model_linear <- lm(
   `Release_Price` ~ `Max_Power` + `Memory` + `Memory_Bandwidth` +
     `Core_Speed` + Manufacturer + `Memory_Type` + `Release_Year`,
   data = train_data
 )
 
-# 1B. Xây dựng model MLR Nâng cao (Log-Linear)
+# 1B. Xây dựng mô hình hồi quy Log-Linear (Nâng cao)
 mlr_model_log <- lm(
   log(`Release_Price`) ~ `Max_Power` + `Memory` + `log_Memory_Bandwidth` +
     `Core_Speed` + Manufacturer + `Memory_Type` + `Release_Year`,
   data = train_data
 )
 
-# 2. Kiểm tra VIF để phát hiện đa cộng tuyến
+# 2. Kiểm tra chỉ số VIF để phát hiện đa cộng tuyến
 check_vif <- function(name, model) {
   vif_values <- vif(model)
 
@@ -307,17 +311,17 @@ check_vif <- function(name, model) {
 check_vif("MLR Cơ bản", mlr_model_linear)
 check_vif("Log-Linear", mlr_model_log)
 
-# ------------------ STATISTICAL TESTS FOR LATEX REPORT ---------
+# ------------------ CÁC KIỂM ĐỊNH THỐNG KÊ CHO BÁO CÁO LATEX ---------
 cat("\n\n===========================================\n")
 cat("KIỂM ĐỊNH THỐNG KÊ (DÀNH CHO BÁO CÁO LATEX)\n")
 cat("===========================================\n")
 
-# 1. Welch's ANOVA (So sánh giá giữa Nvidia và AMD)
+# 1. Welch's ANOVA: So sánh giá phát hành trung bình giữa Nvidia và AMD
 cat("\n--- 1. Kiểm định Welch's ANOVA (Giá ~ Hãng sản xuất) ---\n")
 anova_result <- oneway.test(Release_Price ~ Manufacturer, data = train_data, var.equal = FALSE)
 print(anova_result)
 
-# Thông số chi tiết của Nvidia vs AMD
+# Thống kê chi tiết theo từng hãng
 amd_prices <- train_data$Release_Price[train_data$Manufacturer == "AMD"]
 nv_prices <- train_data$Release_Price[train_data$Manufacturer == "Nvidia"]
 cat(sprintf(
@@ -329,48 +333,46 @@ cat(sprintf(
   length(nv_prices), mean(nv_prices, na.rm = TRUE), median(nv_prices, na.rm = TRUE), sd(nv_prices, na.rm = TRUE)
 ))
 
-# 2. Kiểm định Phương sai đồng nhất (Breusch-Pagan Test)
+# 2. Kiểm định Phương sai đồng nhất (Breusch-Pagan Test) cho mô hình Log-Linear
 cat("\n--- 2. Kiểm định Breusch-Pagan (Homoscedasticity) cho Log-Linear ---\n")
 bp_test_result <- bptest(mlr_model_log)
 print(bp_test_result)
 
 # 3. Kiểm định Phân phối chuẩn của Phần dư (Shapiro-Wilk Test)
 cat("\n--- 3. Kiểm định Shapiro-Wilk (Normality of Residuals) ---\n")
-# Tránh quá giới hạn cỡ mẫu của Shapiro-Wilk (n <= 5000), dù tập dữ liệu ~2000 nên vẫn OK
+# Shapiro-Wilk hoạt động tốt nhất khi n <= 5000
 shapiro_test_result <- shapiro.test(residuals(mlr_model_log))
 print(shapiro_test_result)
 
-# 4. Độ xiên (Skewness) của biến Release_Price
+# 4. Tính toán Độ xiên (Skewness) của biến Release_Price
 cat("\n--- 4. Độ xiên (Skewness) của Giá gốc ---\n")
 price_vals <- na.omit(train_data$Release_Price)
 n_sk <- length(price_vals)
 skew_val <- (n_sk / ((n_sk - 1) * (n_sk - 2))) * sum(((price_vals - mean(price_vals)) / sd(price_vals))^3)
 cat(sprintf("Skewness = %.4f\n", skew_val))
 
-# ------------------ Testing MLR on Test Set ---------
+# ------------------ ĐÁNH GIÁ MÔ HÌNH TRÊN TẬP KIỂM TRA (TEST SET) ---------
 evaluate_model_on_test <- function(name, model, test_df, is_log_model = FALSE) {
-  # Lưu ý: test_df cần trải qua cùng quá trình Imputation và Standardization như train_data
-  # Hàm này thực hiện dự đoán trên các dòng không bị NA ở các biến độc lập
-
+  # Dự đoán dựa trên dữ liệu mới
   predictions <- suppressWarnings(predict(model, newdata = test_df))
 
-  # Nếu mô hình dự đoán theo Logarit, ta phải mũ hóa (exp) ngược lại để đưa về USD
+  # Nếu là mô hình Log-Linear, thực hiện mũ hóa (exp) để chuyển về đơn vị USD
   if (is_log_model) {
     predictions <- exp(predictions)
   }
 
   actuals <- test_df$Release_Price
 
-  # Lọc các dòng dự đoán hợp lệ (không NA)
+  # Lọc các kết quả dự đoán hợp lệ
   valid <- !is.na(predictions) & !is.na(actuals)
   preds_valid <- predictions[valid]
   acts_valid <- actuals[valid]
 
-  # Tính toán các chỉ số
+  # Tính toán các chỉ số sai số (RMSE, MAE)
   rmse <- sqrt(mean((preds_valid - acts_valid)^2))
   mae <- mean(abs(preds_valid - acts_valid))
 
-  # R-squared out-of-sample
+  # Tính R-squared trên tập kiểm tra (Out-of-sample)
   ssr <- sum((acts_valid - preds_valid)^2)
   sst <- sum((acts_valid - mean(acts_valid))^2)
   r2 <- 1 - (ssr / sst)
@@ -384,12 +386,12 @@ evaluate_model_on_test <- function(name, model, test_df, is_log_model = FALSE) {
   return(list(RMSE = rmse, MAE = mae, R2 = r2))
 }
 
-# Chạy thử nghiệm 2 mô hình với test_data
+# Thực thi đánh giá cho cả hai loại mô hình
 evaluate_model_on_test("MLR Cơ bản (Linear)", mlr_model_linear, test_data, is_log_model = FALSE)
 evaluate_model_on_test("MLR Nâng cao (Log-Linear)", mlr_model_log, test_data, is_log_model = TRUE)
 
-# ------------------ STANDARDIZATION (Feature Importance Analysis) ---------
-# Tạo một bản sao dữ liệu đã chuẩn hóa (mean=0, sd=1) chỉ để phân tích tác động các biến
+# ------------------ CHUẨN HÓA DỮ LIỆU (PHÂN TÍCH ĐỘ QUAN TRỌNG CỦA BIẾN) ---------
+# Tính toán các tham số chuẩn hóa (Z-score: mean=0, sd=1)
 scale_params <- list(
   Max_Power = list(mean = mean(train_data$Max_Power, na.rm = TRUE), sd = sd(train_data$Max_Power, na.rm = TRUE)),
   Memory = list(mean = mean(train_data$Memory, na.rm = TRUE), sd = sd(train_data$Memory, na.rm = TRUE)),
@@ -398,6 +400,7 @@ scale_params <- list(
   Release_Year = list(mean = mean(train_data$Release_Year, na.rm = TRUE), sd = sd(train_data$Release_Year, na.rm = TRUE))
 )
 
+# Hàm áp dụng chuẩn hóa cho tập dữ liệu
 apply_scaling <- function(df, params) {
   df %>% mutate(
     Max_Power = (Max_Power - params$Max_Power$mean) / params$Max_Power$sd,
@@ -410,7 +413,7 @@ apply_scaling <- function(df, params) {
 
 train_data_scaled <- apply_scaling(train_data, scale_params)
 
-# Xây dựng lại mô hình trên dữ liệu đã chuẩn hóa để lấy hệ số (Estimate)
+# Tái xây dựng mô hình trên dữ liệu chuẩn hóa để so sánh hệ số (Feature Importance)
 mlr_model_scaled <- lm(
   log(`Release_Price`) ~ `Max_Power` + `Memory` + `log_Memory_Bandwidth` +
     `Core_Speed` + Manufacturer + `Memory_Type` + `Release_Year`,
@@ -420,14 +423,13 @@ mlr_model_scaled <- lm(
 cat("\n--- Tác động của các biến (Feature Importance) trên Mô hình Chuẩn hóa ---\n")
 print(summary(mlr_model_scaled))
 
-# NEW FLOW END HERE
+# QUY TRÌNH MỚI KẾT THÚC TẠI ĐÂY
 
 # ===========================================
-# DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE)
+# DỰ ĐOÁN GIÁ GPU MỚI (NGOÀI TẬP DỮ LIỆU)
 # ===========================================
-# Lưu ý: Các GPU đời mới dùng GDDR6, nhưng tập train cũ chỉ tới GDDR5X,
-# nên ta map GDDR6 -> GDDR5X để mô hình hiểu được kiến trúc tốc độ cao.
-# Băng thông (Memory_Bandwidth) được tính bằng GB/s.
+# Lưu ý: Các GPU đời mới sử dụng chuẩn GDDR6, ta tạm thời ánh xạ sang GDDR5X
+# để mô hình có thể xử lý dựa trên kiến trúc bộ nhớ tốc độ cao.
 
 new_gpus <- data.frame(
   Name = c("GeForce GTX 1660", "Radeon RX 590", "GeForce RTX 3060"),
@@ -441,23 +443,23 @@ new_gpus <- data.frame(
   Release_Price = c(219, 279, 329)
 )
 
-# 1. Tiền xử lý: Lấy log(Memory_Bandwidth) hệt như lúc train
+# 1. Tiền xử lý: Chuyển đổi Bandwidth sang thang Log tương tự tập huấn luyện
 new_gpus <- new_gpus %>% mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
 
-# 2. Dự đoán bằng mô hình Log-Linear và Linear (KHÔNG SCALE)
+# 2. Thực hiện dự đoán bằng cả hai mô hình (sử dụng đơn vị gốc, không chuẩn hóa)
 new_preds_linear <- predict(mlr_model_linear, newdata = new_gpus)
-new_preds_log <- exp(predict(mlr_model_log, newdata = new_gpus)) # Nhớ dùng hàm exp() để đảo ngược log(Price) về USD
+new_preds_log <- exp(predict(mlr_model_log, newdata = new_gpus))
 
-# Tính phần trăm sai lệch
+# Tính toán sai số phần trăm so với giá thực tế
 lin_pct <- round((new_preds_linear - new_gpus$Release_Price) / new_gpus$Release_Price * 100, 1)
 log_pct <- round((new_preds_log - new_gpus$Release_Price) / new_gpus$Release_Price * 100, 1)
 
-# Format hiển thị (VD: +5%, -10%)
+# Định dạng hiển thị (Ví dụ: +5%, -10%)
 lin_pct_str <- ifelse(lin_pct > 0, paste0("+", lin_pct, "%"), paste0(lin_pct, "%"))
 log_pct_str <- ifelse(log_pct > 0, paste0("+", log_pct, "%"), paste0(log_pct, "%"))
 
 cat("\n\n===========================================\n")
-cat("DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE - VÌ KHOA HỌC)\n")
+cat("DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE)\n")
 cat("===========================================\n")
 result_df <- data.frame(
   GPU = new_gpus$Name,
@@ -468,7 +470,7 @@ result_df <- data.frame(
 print(result_df)
 
 # ==========================================================
-# PHẦN VẼ BIỂU ĐỒ DÀNH CHO BÁO CÁO LATEX
+# PHẦN TRỰC QUAN HÓA (XUẤT BIỂU ĐỒ CHO BÁO CÁO LATEX)
 # ==========================================================
 cat("\n\n===========================================\n")
 cat("TẠO CÁC BIỂU ĐỒ (LƯU VÀO THƯ MỤC figures/)\n")
@@ -478,13 +480,13 @@ if (!dir.exists("figures")) {
   dir.create("figures")
 }
 
-# 1. MA TRẬN TƯƠNG QUAN PEARSON
+# 1. BIỂU ĐỒ MA TRẬN TƯƠNG QUAN PEARSON
 numeric_subset <- train_data %>%
   select(Release_Price, Max_Power, Memory, Memory_Bandwidth, Core_Speed, Release_Year)
 
 cor_matrix <- cor(numeric_subset, use = "complete.obs")
 display_labels <- c(
-  "Giá phát hành", "TDP (Max Power)", "Dung lượng RAM",
+  "Giá phát hành", "TDP (Công suất)", "Dung lượng RAM",
   "Băng thông", "Xung nhịp lõi", "Năm phát hành"
 )
 colnames(cor_matrix) <- display_labels
@@ -515,7 +517,7 @@ for (i in 1:n_cor) {
 dev.off()
 cat("--- Đã xuất figures/correlation_matrix.png ---\n")
 
-# 2. BIỂU ĐỒ CHẨN ĐOÁN PHẦN DƯ
+# 2. CÁC BIỂU ĐỒ CHẨN ĐOÁN PHẦN DƯ
 png("figures/diagnostic_residuals.png",
   type = "cairo",
   width = 1800, height = 800, res = 200
@@ -526,7 +528,7 @@ resid_vals <- residuals(mlr_model_log)
 
 plot(fitted_vals, resid_vals,
   main = "Phần dư vs. Giá trị ước lượng (Log-Linear)",
-  xlab = "Giá trị ước lượng (log-scale)", ylab = "Phần dư (Residuals)",
+  xlab = "Giá trị ước lượng (thang log)", ylab = "Phần dư (Residuals)",
   pch = 19, col = rgb(0.2, 0.4, 0.6, 0.4), cex.lab = 1.1, cex.main = 1.15
 )
 abline(h = 0, col = "red", lwd = 2, lty = 2)
@@ -541,7 +543,7 @@ par(mfrow = c(1, 1))
 dev.off()
 cat("--- Đã xuất figures/diagnostic_residuals.png ---\n")
 
-# 3. BIỂU ĐỒ PHÂN PHỐI GIÁ: GỐC vs LOG
+# 3. BIỂU ĐỒ SO SÁNH PHÂN PHỐI GIÁ (GỐC vs LOG)
 png("figures/price_distribution_compare.png",
   type = "cairo",
   width = 1800, height = 800, res = 200
@@ -560,7 +562,7 @@ par(mfrow = c(1, 1))
 dev.off()
 cat("--- Đã xuất figures/price_distribution_compare.png ---\n")
 
-# 4. BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ
+# 4. BIỂU ĐỒ ĐỘ QUAN TRỌNG CỦA CÁC HỆ SỐ HỒI QUY
 coef_df <- summary(mlr_model_scaled)$coefficients
 var_names <- rownames(coef_df)[-1]
 var_pct <- (exp(coef_df[-1, "Estimate"]) - 1) * 100
@@ -582,7 +584,7 @@ png("figures/coefficient_importance.png",
 par(mar = c(5, 12, 4, 4))
 bp <- barplot(var_pct_sorted,
   names.arg = display_sorted, horiz = TRUE, las = 1,
-  col = bar_cols, border = NA, main = "Tác động của từng biến lên giá GPU (%)",
+  col = bar_cols, border = NA, main = "Tác động của các biến lên giá GPU (%)",
   xlab = "Thay đổi giá (%) khi tăng 1 đơn vị chuẩn hóa",
   xlim = c(min(var_pct_sorted) - 10, max(var_pct_sorted) + 15)
 )
@@ -593,7 +595,7 @@ text(var_pct_sorted, bp,
 dev.off()
 cat("--- Đã xuất figures/coefficient_importance.png ---\n")
 
-# 5. HISTOGRAM PHẦN DƯ
+# 5. BIỂU ĐỒ TẦN SUẤT PHẦN DƯ (RESIDUAL HISTOGRAM)
 png("figures/residual_histogram.png",
   type = "cairo",
   width = 1200, height = 800, res = 200
@@ -606,10 +608,10 @@ curve(dnorm(x, mean = mean(resid_vals), sd = sd(resid_vals)), add = TRUE, col = 
 dev.off()
 cat("--- Đã xuất figures/residual_histogram.png ---\n")
 
-# 6. BIỂU ĐỒ SO SÁNH GIÁ THỰC TẾ VÀ GIÁ DỰ ĐOÁN
+# 6. BIỂU ĐỒ PHÂN TÁN SO SÁNH GIÁ THỰC TẾ VÀ DỰ ĐOÁN
 png("figures/scatter_actual_vs_predicted.png", type = "cairo", width = 1200, height = 1000, res = 150)
 par(mar = c(5, 5, 4, 2))
-predicted_values <- exp(fitted_vals) # Giải log() về lại USD
+predicted_values <- exp(fitted_vals) # Chuyển đổi ngược từ log() về USD
 actual_values <- train_data$Release_Price
 
 plot(actual_values, predicted_values,
@@ -621,11 +623,11 @@ plot(actual_values, predicted_values,
   xlim = c(0, max(actual_values)),
   ylim = c(0, max(predicted_values))
 )
-abline(0, 1, col = "red", lwd = 2) # Đường thẳng lý tưởng y = x
+abline(0, 1, col = "red", lwd = 2) # Đường chuẩn y = x
 dev.off()
 cat("--- Đã xuất figures/scatter_actual_vs_predicted.png ---\n")
 
-# Xuất dữ liệu đã lọc ra CSV
-# Xóa file cũ nếu tồn tại
-unlink("output.csv")
-write.csv(train_data, "output.csv", row.names = FALSE)
+# Xuất dữ liệu đã xử lý sạch ra file CSV
+# Ghi đè file cũ nếu tồn tại
+# unlink("output.csv")
+# write.csv(train_data, "output.csv", row.names = FALSE)
