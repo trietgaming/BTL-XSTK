@@ -35,6 +35,73 @@ kept_vars <- c(
   "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type"
 )
 
+# ==========================================================
+# VẼ BIỂU ĐỒ MISSING DATA (Tỷ lệ khuyết)
+# ==========================================================
+if (!dir.exists("figures")) {
+  dir.create("figures")
+}
+
+missing_count <- sapply(raw_data, function(col) {
+  if (is.character(col)) {
+    cleaned <- str_trim(col)
+    sum(is.na(col) | cleaned == "" | cleaned == "-")
+  } else {
+    sum(is.na(col))
+  }
+})
+missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
+
+missing_df <- data.frame(
+  variable = names(missing_pct),
+  pct = as.numeric(missing_pct),
+  kept = names(missing_pct) %in% kept_vars
+)
+missing_df <- missing_df[order(-missing_df$pct), ]
+
+other_vars <- missing_df[!missing_df$kept & missing_df$pct < 30, ]
+avg_other_pct <- mean(other_vars$pct)
+other_count <- nrow(other_vars)
+
+missing_df_plot <- rbind(
+  missing_df[missing_df$kept | missing_df$pct >= 30, ],
+  data.frame(
+    variable = paste("Trung bình các biến khác", sprintf("(%d)", other_count)),
+    pct = avg_other_pct,
+    kept = FALSE
+  )
+)
+
+bar_colors_plot <- with(
+  missing_df_plot,
+  ifelse(kept, "#2c7fb8",
+    ifelse(pct >= 30, "#e34a33", "#bdbdbd")
+  )
+)
+
+png("figures/missing_data_ratio.png",
+  type = "cairo",
+  width = 2400, height = 1400, res = 300
+)
+par(mar = c(5, 15, 4, 2))
+barplot(rev(missing_df_plot$pct),
+  names.arg = rev(missing_df_plot$variable),
+  horiz = TRUE, las = 1,
+  col = rev(bar_colors_plot),
+  xlim = c(0, 100),
+  xlab = "Tỷ lệ dữ liệu khuyết (%)",
+  main = paste("Tỷ lệ dữ liệu khuyết (N =", nrow(raw_data), ")"),
+  cex.names = 0.85, cex.main = 1.05
+)
+abline(v = 30, col = "red", lty = 2, lwd = 1.5)
+legend("bottomright",
+  legend = c("Biến được chọn", "Bị loại (thiếu >= 30%)", "Các biến khác"),
+  fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
+  cex = 0.85, bty = "n"
+)
+dev.off()
+cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
+
 selected_data <- raw_data %>% select(all_of(kept_vars))
 
 # -------- CLEANING -----------
@@ -90,6 +157,58 @@ clean_data <- clean_data %>%
     Manufacturer = as.factor(Manufacturer),
     Memory_Type = as.factor(Memory_Type)
   )
+
+# ------------------ OUTLIER DETECTION (RANH GIỚI TUKEY) -----------------
+cat("\n--- NHẬN DIỆN NGOẠI LẠI (Tukey 1.5 * IQR) ---\n")
+calc_tukey <- function(vec) {
+  v <- na.omit(vec)
+  q1 <- quantile(v, 0.25)
+  q3 <- quantile(v, 0.75)
+  iqr <- q3 - q1
+  list(q1 = q1, q3 = q3, iqr = iqr, lower = q1 - 1.5 * iqr, upper = q3 + 1.5 * iqr)
+}
+
+price_bnd <- calc_tukey(clean_data$Release_Price)
+
+cat(sprintf("Ranh giới Release_Price (N=%d):\n", nrow(clean_data)))
+cat(sprintf(
+  "Q1=%.0f, Q3=%.0f, IQR=%.0f, Ngưỡng trên=%.2f\n",
+  price_bnd$q1, price_bnd$q3, price_bnd$iqr, price_bnd$upper
+))
+
+outliers_count <- sum(clean_data$Release_Price > price_bnd$upper, na.rm = TRUE)
+cat(sprintf(
+  "=> Phát hiện %d quan sát là ngoại lai (Giá > %.2f)\n",
+  outliers_count, price_bnd$upper
+))
+
+# Vẽ Boxplot quan sát ngoại lai
+if (!dir.exists("figures")) dir.create("figures")
+png("figures/boxplot_outliers.png", type = "cairo", width = 1600, height = 800, res = 200)
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
+boxplot(clean_data$Release_Price,
+  main = "Phân phối giá (Scale gốc)",
+  col = "lightblue", ylab = "USD", outline = TRUE
+)
+abline(h = price_bnd$upper, col = "red", lty = 2, lwd = 2)
+
+boxplot(clean_data$Release_Price,
+  main = "Phân phối giá (Log-scale)",
+  col = "lightgreen", ylab = "USD (log scale)", log = "y", outline = TRUE
+)
+abline(h = price_bnd$upper, col = "red", lty = 2, lwd = 2)
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/boxplot_outliers.png ---\n")
+
+# BẬT TẮT CHẾ ĐỘ LOẠI BỎ NGOẠI LAI (True = Xóa, False = Giữ lại)
+REMOVE_OUTLIERS <- TRUE
+if (REMOVE_OUTLIERS) {
+  clean_data <- clean_data %>% filter(Release_Price <= price_bnd$upper | is.na(Release_Price))
+  cat(sprintf("=> Đã loại bỏ ngoại lai. Dữ liệu còn lại: %d quan sát\n", nrow(clean_data)))
+} else {
+  cat("=> Quyết định GIỮ LẠI các ngoại lai để huấn luyện mô hình.\n")
+}
 
 # ---------------- Split Training and Testing Set (9/1 ratio) -----------
 set.seed(2026252) # For reproducibility
@@ -188,6 +307,46 @@ check_vif <- function(name, model) {
 check_vif("MLR Cơ bản", mlr_model_linear)
 check_vif("Log-Linear", mlr_model_log)
 
+# ------------------ STATISTICAL TESTS FOR LATEX REPORT ---------
+cat("\n\n===========================================\n")
+cat("KIỂM ĐỊNH THỐNG KÊ (DÀNH CHO BÁO CÁO LATEX)\n")
+cat("===========================================\n")
+
+# 1. Welch's ANOVA (So sánh giá giữa Nvidia và AMD)
+cat("\n--- 1. Kiểm định Welch's ANOVA (Giá ~ Hãng sản xuất) ---\n")
+anova_result <- oneway.test(Release_Price ~ Manufacturer, data = train_data, var.equal = FALSE)
+print(anova_result)
+
+# Thông số chi tiết của Nvidia vs AMD
+amd_prices <- train_data$Release_Price[train_data$Manufacturer == "AMD"]
+nv_prices <- train_data$Release_Price[train_data$Manufacturer == "Nvidia"]
+cat(sprintf(
+  "AMD: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
+  length(amd_prices), mean(amd_prices, na.rm = TRUE), median(amd_prices, na.rm = TRUE), sd(amd_prices, na.rm = TRUE)
+))
+cat(sprintf(
+  "NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
+  length(nv_prices), mean(nv_prices, na.rm = TRUE), median(nv_prices, na.rm = TRUE), sd(nv_prices, na.rm = TRUE)
+))
+
+# 2. Kiểm định Phương sai đồng nhất (Breusch-Pagan Test)
+cat("\n--- 2. Kiểm định Breusch-Pagan (Homoscedasticity) cho Log-Linear ---\n")
+bp_test_result <- bptest(mlr_model_log)
+print(bp_test_result)
+
+# 3. Kiểm định Phân phối chuẩn của Phần dư (Shapiro-Wilk Test)
+cat("\n--- 3. Kiểm định Shapiro-Wilk (Normality of Residuals) ---\n")
+# Tránh quá giới hạn cỡ mẫu của Shapiro-Wilk (n <= 5000), dù tập dữ liệu ~2000 nên vẫn OK
+shapiro_test_result <- shapiro.test(residuals(mlr_model_log))
+print(shapiro_test_result)
+
+# 4. Độ xiên (Skewness) của biến Release_Price
+cat("\n--- 4. Độ xiên (Skewness) của Giá gốc ---\n")
+price_vals <- na.omit(train_data$Release_Price)
+n_sk <- length(price_vals)
+skew_val <- (n_sk / ((n_sk - 1) * (n_sk - 2))) * sum(((price_vals - mean(price_vals)) / sd(price_vals))^3)
+cat(sprintf("Skewness = %.4f\n", skew_val))
+
 # ------------------ Testing MLR on Test Set ---------
 evaluate_model_on_test <- function(name, model, test_df, is_log_model = FALSE) {
   # Lưu ý: test_df cần trải qua cùng quá trình Imputation và Standardization như train_data
@@ -266,7 +425,7 @@ print(summary(mlr_model_scaled))
 # ===========================================
 # DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE)
 # ===========================================
-# Lưu ý: Các GPU đời mới dùng GDDR6, nhưng tập train cũ chỉ tới GDDR5X, 
+# Lưu ý: Các GPU đời mới dùng GDDR6, nhưng tập train cũ chỉ tới GDDR5X,
 # nên ta map GDDR6 -> GDDR5X để mô hình hiểu được kiến trúc tốc độ cao.
 # Băng thông (Memory_Bandwidth) được tính bằng GB/s.
 
@@ -277,7 +436,7 @@ new_gpus <- data.frame(
   Memory_Bandwidth = c(192, 256, 360),
   Core_Speed = c(1530, 1469, 1320),
   Manufacturer = c("Nvidia", "AMD", "Nvidia"),
-  Memory_Type = c("GDDR5", "GDDR5", "GDDR5X"), 
+  Memory_Type = c("GDDR5", "GDDR5", "GDDR5X"),
   Release_Year = c(2019, 2018, 2021),
   Release_Price = c(219, 279, 329)
 )
@@ -307,6 +466,164 @@ result_df <- data.frame(
   LogLinear = paste0(round(new_preds_log, 0), "$ (", log_pct_str, ")")
 )
 print(result_df)
+
+# ==========================================================
+# PHẦN VẼ BIỂU ĐỒ DÀNH CHO BÁO CÁO LATEX
+# ==========================================================
+cat("\n\n===========================================\n")
+cat("TẠO CÁC BIỂU ĐỒ (LƯU VÀO THƯ MỤC figures/)\n")
+cat("===========================================\n")
+
+if (!dir.exists("figures")) {
+  dir.create("figures")
+}
+
+# 1. MA TRẬN TƯƠNG QUAN PEARSON
+numeric_subset <- train_data %>%
+  select(Release_Price, Max_Power, Memory, Memory_Bandwidth, Core_Speed, Release_Year)
+
+cor_matrix <- cor(numeric_subset, use = "complete.obs")
+display_labels <- c(
+  "Giá phát hành", "TDP (Max Power)", "Dung lượng RAM",
+  "Băng thông", "Xung nhịp lõi", "Năm phát hành"
+)
+colnames(cor_matrix) <- display_labels
+rownames(cor_matrix) <- display_labels
+
+png("figures/correlation_matrix.png",
+  type = "cairo",
+  width = 2200, height = 2000, res = 300
+)
+par(mar = c(10, 10, 4, 5))
+n_cor <- ncol(cor_matrix)
+img_data <- t(cor_matrix[n_cor:1, ])
+image(1:n_cor, 1:n_cor, img_data,
+  col = colorRampPalette(c("#2166ac", "#f7f7f7", "#b2182b"))(100),
+  breaks = seq(-1, 1, length.out = 101),
+  axes = FALSE, xlab = "", ylab = "",
+  main = paste("Ma trận tương quan Pearson (N =", nrow(train_data), ")")
+)
+axis(1, at = 1:n_cor, labels = colnames(cor_matrix), las = 2, cex.axis = 0.9)
+axis(2, at = 1:n_cor, labels = rev(colnames(cor_matrix)), las = 1, cex.axis = 0.9)
+for (i in 1:n_cor) {
+  for (j in 1:n_cor) {
+    val <- cor_matrix[i, j]
+    text_col <- ifelse(abs(val) > 0.6, "white", "black")
+    text(j, n_cor - i + 1, sprintf("%.2f", val), cex = 1.1, col = text_col)
+  }
+}
+dev.off()
+cat("--- Đã xuất figures/correlation_matrix.png ---\n")
+
+# 2. BIỂU ĐỒ CHẨN ĐOÁN PHẦN DƯ
+png("figures/diagnostic_residuals.png",
+  type = "cairo",
+  width = 1800, height = 800, res = 200
+)
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
+fitted_vals <- fitted(mlr_model_log)
+resid_vals <- residuals(mlr_model_log)
+
+plot(fitted_vals, resid_vals,
+  main = "Phần dư vs. Giá trị ước lượng (Log-Linear)",
+  xlab = "Giá trị ước lượng (log-scale)", ylab = "Phần dư (Residuals)",
+  pch = 19, col = rgb(0.2, 0.4, 0.6, 0.4), cex.lab = 1.1, cex.main = 1.15
+)
+abline(h = 0, col = "red", lwd = 2, lty = 2)
+lines(lowess(fitted_vals, resid_vals), col = "#e34a33", lwd = 2)
+
+qqnorm(resid_vals,
+  main = "Q-Q Plot phần dư",
+  pch = 19, col = rgb(0.2, 0.4, 0.6, 0.4), cex.lab = 1.1, cex.main = 1.15
+)
+qqline(resid_vals, col = "red", lwd = 2)
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/diagnostic_residuals.png ---\n")
+
+# 3. BIỂU ĐỒ PHÂN PHỐI GIÁ: GỐC vs LOG
+png("figures/price_distribution_compare.png",
+  type = "cairo",
+  width = 1800, height = 800, res = 200
+)
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2))
+hist(train_data$Release_Price,
+  breaks = 40, col = "#2c7fb8", border = "white",
+  main = "Phân phối giá phát hành (USD)", xlab = "Giá (USD)", ylab = "Tần suất"
+)
+log_prices <- log(train_data$Release_Price[!is.na(train_data$Release_Price)])
+hist(log_prices,
+  breaks = 30, col = "#41ae76", border = "white",
+  main = "Phân phối log(giá phát hành)", xlab = "log(Giá)", ylab = "Tần suất"
+)
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/price_distribution_compare.png ---\n")
+
+# 4. BIỂU ĐỒ TẦM QUAN TRỌNG HỆ SỐ
+coef_df <- summary(mlr_model_scaled)$coefficients
+var_names <- rownames(coef_df)[-1]
+var_pct <- (exp(coef_df[-1, "Estimate"]) - 1) * 100
+display_names_map <- list(
+  Max_Power = "TDP (Công suất)", Memory = "Dung lượng RAM",
+  log_Memory_Bandwidth = "Băng thông (Log)", Core_Speed = "Xung nhịp lõi",
+  ManufacturerNvidia = "Hãng NVIDIA", Release_Year = "Năm phát hành"
+)
+display_mapped <- sapply(var_names, function(x) ifelse(!is.null(display_names_map[[x]]), display_names_map[[x]], x))
+ord <- order(abs(var_pct))
+var_pct_sorted <- var_pct[ord]
+display_sorted <- display_mapped[ord]
+bar_cols <- ifelse(var_pct_sorted > 0, "#2c7fb8", "#e34a33")
+
+png("figures/coefficient_importance.png",
+  type = "cairo",
+  width = 2000, height = 1200, res = 200
+)
+par(mar = c(5, 12, 4, 4))
+bp <- barplot(var_pct_sorted,
+  names.arg = display_sorted, horiz = TRUE, las = 1,
+  col = bar_cols, border = NA, main = "Tác động của từng biến lên giá GPU (%)",
+  xlab = "Thay đổi giá (%) khi tăng 1 đơn vị chuẩn hóa",
+  xlim = c(min(var_pct_sorted) - 10, max(var_pct_sorted) + 15)
+)
+text(var_pct_sorted, bp,
+  labels = paste0(ifelse(var_pct_sorted > 0, "+", ""), round(var_pct_sorted, 1), "%"),
+  pos = ifelse(var_pct_sorted > 0, 4, 2), cex = 0.85, font = 2
+)
+dev.off()
+cat("--- Đã xuất figures/coefficient_importance.png ---\n")
+
+# 5. HISTOGRAM PHẦN DƯ
+png("figures/residual_histogram.png",
+  type = "cairo",
+  width = 1200, height = 800, res = 200
+)
+hist(resid_vals,
+  breaks = 35, col = "#756bb1", border = "white",
+  main = "Phân phối phần dư của Log-Linear", xlab = "Phần dư", freq = FALSE
+)
+curve(dnorm(x, mean = mean(resid_vals), sd = sd(resid_vals)), add = TRUE, col = "red", lwd = 2)
+dev.off()
+cat("--- Đã xuất figures/residual_histogram.png ---\n")
+
+# 6. BIỂU ĐỒ SO SÁNH GIÁ THỰC TẾ VÀ GIÁ DỰ ĐOÁN
+png("figures/scatter_actual_vs_predicted.png", type = "cairo", width = 1200, height = 1000, res = 150)
+par(mar = c(5, 5, 4, 2))
+predicted_values <- exp(fitted_vals) # Giải log() về lại USD
+actual_values <- train_data$Release_Price
+
+plot(actual_values, predicted_values,
+  main = "So sánh Giá Thực tế vs Giá Dự đoán (USD)",
+  xlab = "Giá thực tế (USD)",
+  ylab = "Giá dự đoán (USD)",
+  pch = 19,
+  col = rgb(0.2, 0.4, 0.6, 0.5),
+  xlim = c(0, max(actual_values)),
+  ylim = c(0, max(predicted_values))
+)
+abline(0, 1, col = "red", lwd = 2) # Đường thẳng lý tưởng y = x
+dev.off()
+cat("--- Đã xuất figures/scatter_actual_vs_predicted.png ---\n")
 
 # Xuất dữ liệu đã lọc ra CSV
 # Xóa file cũ nếu tồn tại

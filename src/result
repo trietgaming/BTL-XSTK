@@ -1,0 +1,271 @@
+# REMOVED OUTLIERS
+
+
+--- Đã xuất figures/missing_data_ratio.png ---
+Dữ liệu sau khi làm sạch: N = 498 
+
+--- NHẬN DIỆN NGOẠI LẠI (Tukey 1.5 * IQR) ---
+Ranh giới Release_Price (N=498):
+Q1=150, Q3=349, IQR=199, Ngưỡng trên=647.50
+=> Phát hiện 52 quan sát là ngoại lai (Giá > 647.50)
+--- Đã xuất figures/boxplot_outliers.png ---
+=> Đã loại bỏ ngoại lai. Dữ liệu còn lại: 446 quan sát
+Dữ liệu sau khi chia: Train (N = 401), Test (N = 45)
+Số dòng NA của train_data sau imputation:
+Name: 0, Release_Price: 0, Max_Power: 0, Memory: 0, Memory_Bandwidth: 0, Core_Speed: 0, Manufacturer: 0, Memory_Type: 0, Release_Year: 0
+Số dòng NA của test_data sau imputation:
+Name: 0, Release_Price: 0, Max_Power: 0, Memory: 0, Memory_Bandwidth: 0, Core_Speed: 0, Manufacturer: 0, Memory_Type: 0, Release_Year: 0
+
+--- Kiểm tra VIF ( MLR Cơ bản ) ---
+                     GVIF Df GVIF^(1/(2*Df))
+Max_Power        4.171944  1        2.042534
+Memory           4.565104  1        2.136610
+Memory_Bandwidth 8.152542  1        2.855266
+Core_Speed       3.717009  1        1.927955
+Manufacturer     1.953750  1        1.397766
+Memory_Type      3.187874  5        1.122923
+Release_Year     4.287333  1        2.070588
+
+--- Kiểm tra VIF ( Log-Linear ) ---
+                         GVIF Df GVIF^(1/(2*Df))
+Max_Power            3.966452  1        1.991595
+Memory               3.170213  1        1.780509
+log_Memory_Bandwidth 7.344293  1        2.710036
+Core_Speed           3.636046  1        1.906842
+Manufacturer         1.969685  1        1.403455
+Memory_Type          4.062567  5        1.150483
+Release_Year         4.527804  1        2.127864
+
+
+===========================================
+KIỂM ĐỊNH THỐNG KÊ (DÀNH CHO BÁO CÁO LATEX)
+===========================================
+
+--- 1. Kiểm định Welch's ANOVA (Giá ~ Hãng sản xuất) ---
+
+        One-way analysis of means (not assuming equal variances)
+
+data:  Release_Price and Manufacturer
+F = 31.67, num df = 1.00, denom df = 320.65, p-value = 3.988e-08
+
+AMD: n=219, mean=206.95, median=199.00, sd=100.30
+NVIDIA: n=182, mean=276.56, median=246.22, sd=139.58
+
+--- 2. Kiểm định Breusch-Pagan (Homoscedasticity) cho Log-Linear ---
+
+        studentized Breusch-Pagan test
+
+data:  mlr_model_log
+BP = 14.707, df = 11, p-value = 0.1963
+
+
+--- 3. Kiểm định Shapiro-Wilk (Normality of Residuals) ---
+
+        Shapiro-Wilk normality test
+
+data:  residuals(mlr_model_log)
+W = 0.96405, p-value = 2.376e-08
+
+
+--- 4. Độ xiên (Skewness) của Giá gốc ---
+Skewness = 1.1218
+
+--- Đánh giá Mô hình MLR Cơ bản (Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 45 / 45
+RMSE (Root Mean Squared Error): 62.18 $
+MAE (Mean Absolute Error):      45.76 $
+R-squared (Out-of-sample):      0.7454
+
+--- Đánh giá Mô hình MLR Nâng cao (Log-Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 45 / 45
+RMSE (Root Mean Squared Error): 51.92 $
+MAE (Mean Absolute Error):      33.50 $
+R-squared (Out-of-sample):      0.8225
+
+--- Tác động của các biến (Feature Importance) trên Mô hình Chuẩn hóa ---
+
+Call:
+lm(formula = log(Release_Price) ~ Max_Power + Memory + log_Memory_Bandwidth +
+    Core_Speed + Manufacturer + Memory_Type + Release_Year, data = train_data_scaled)
+
+Residuals:
+     Min       1Q   Median       3Q      Max
+-0.81012 -0.09294  0.01105  0.11714  0.65017
+
+Coefficients:
+                     Estimate Std. Error t value Pr(>|t|)
+(Intercept)           5.71671    0.08016  71.318  < 2e-16 ***
+Max_Power             0.13727    0.01885   7.284 1.81e-12 ***
+Memory               -0.01396    0.01685  -0.828 0.407950
+log_Memory_Bandwidth  0.39986    0.02564  15.593  < 2e-16 ***
+Core_Speed            0.16806    0.01804   9.314  < 2e-16 ***
+ManufacturerNvidia    0.20973    0.02664   7.872 3.50e-14 ***
+Memory_TypeGDDR3     -0.37393    0.08627  -4.334 1.87e-05 ***
+Memory_TypeGDDR5     -0.49041    0.07962  -6.159 1.82e-09 ***
+Memory_TypeGDDR5X    -0.36635    0.20960  -1.748 0.081285 .
+Memory_TypeHBM-1     -0.59746    0.16830  -3.550 0.000432 ***
+Memory_TypeHBM-2      0.06276    0.13616   0.461 0.645115
+Release_Year         -0.22083    0.02013 -10.968  < 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.1892 on 389 degrees of freedom
+Multiple R-squared:  0.8699,    Adjusted R-squared:  0.8662
+F-statistic: 236.4 on 11 and 389 DF,  p-value: < 2.2e-16
+
+
+
+===========================================
+DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE - VÌ KHOA HỌC)
+===========================================
+               GPU ThucTe        Linear    LogLinear
+1 GeForce GTX 1660   219$ 250$ (+14.2%) 234$ (+6.8%)
+2    Radeon RX 590   279$  306$ (+9.5%) 275$ (-1.4%)
+3 GeForce RTX 3060   329$ 413$ (+25.5%) 315$ (-4.4%)
+
+
+===========================================
+TẠO CÁC BIỂU ĐỒ (LƯU VÀO THƯ MỤC figures/)
+===========================================
+--- Đã xuất figures/correlation_matrix.png ---
+--- Đã xuất figures/diagnostic_residuals.png ---
+--- Đã xuất figures/price_distribution_compare.png ---
+--- Đã xuất figures/coefficient_importance.png ---
+--- Đã xuất figures/residual_histogram.png ---
+--- Đã xuất figures/scatter_actual_vs_predicted.png ---
+
+# KEEP OUTLIERS:
+
+
+--- Đã xuất figures/missing_data_ratio.png ---
+Dữ liệu sau khi làm sạch: N = 498 
+
+--- NHẬN DIỆN NGOẠI LẠI (Tukey 1.5 * IQR) ---
+Ranh giới Release_Price (N=498):
+Q1=150, Q3=349, IQR=199, Ngưỡng trên=647.50
+=> Phát hiện 52 quan sát là ngoại lai (Giá > 647.50)
+--- Đã xuất figures/boxplot_outliers.png ---
+=> Quyết định GIỮ LẠI các ngoại lai để huấn luyện mô hình.
+Dữ liệu sau khi chia: Train (N = 448), Test (N = 50)
+Số dòng NA của train_data sau imputation:
+Name: 0, Release_Price: 0, Max_Power: 0, Memory: 0, Memory_Bandwidth: 0, Core_Speed: 0, Manufacturer: 0, Memory_Type: 0, Release_Year: 0
+Số dòng NA của test_data sau imputation:
+Name: 0, Release_Price: 0, Max_Power: 0, Memory: 0, Memory_Bandwidth: 0, Core_Speed: 0, Manufacturer: 0, Memory_Type: 0, Release_Year: 0 
+
+--- Kiểm tra VIF ( MLR Cơ bản ) ---
+                     GVIF Df GVIF^(1/(2*Df))
+Max_Power        4.958734  1        2.226822
+Memory           4.010310  1        2.002576
+Memory_Bandwidth 9.815590  1        3.132984
+Core_Speed       4.118297  1        2.029359
+Manufacturer     1.897099  1        1.377352
+Memory_Type      4.420223  5        1.160231
+Release_Year     4.197933  1        2.048886
+
+--- Kiểm tra VIF ( Log-Linear ) ---
+                         GVIF Df GVIF^(1/(2*Df))
+Max_Power            3.881784  1        1.970224
+Memory               2.869981  1        1.694102
+log_Memory_Bandwidth 7.381136  1        2.716825
+Core_Speed           3.997014  1        1.999253
+Manufacturer         1.881027  1        1.371505
+Memory_Type          4.948666  5        1.173407
+Release_Year         4.186749  1        2.046155
+
+
+===========================================
+KIỂM ĐỊNH THỐNG KÊ (DÀNH CHO BÁO CÁO LATEX)
+===========================================
+
+--- 1. Kiểm định Welch's ANOVA (Giá ~ Hãng sản xuất) ---
+
+        One-way analysis of means (not assuming equal variances)
+
+data:  Release_Price and Manufacturer
+F = 54.147, num df = 1.00, denom df = 407.24, p-value = 1.035e-12
+
+AMD: n=227, mean=226.47, median=200.00, sd=160.29
+NVIDIA: n=221, mean=358.33, median=289.99, sd=214.35
+
+--- 2. Kiểm định Breusch-Pagan (Homoscedasticity) cho Log-Linear ---
+
+        studentized Breusch-Pagan test
+
+data:  mlr_model_log
+BP = 39.757, df = 11, p-value = 3.937e-05
+
+
+--- 3. Kiểm định Shapiro-Wilk (Normality of Residuals) ---
+
+        Shapiro-Wilk normality test
+
+data:  residuals(mlr_model_log)
+W = 0.9738, p-value = 3.36e-07
+
+
+--- 4. Độ xiên (Skewness) của Giá gốc ---
+Skewness = 1.6623
+
+--- Đánh giá Mô hình MLR Cơ bản (Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 50 / 50
+RMSE (Root Mean Squared Error): 80.63 $
+MAE (Mean Absolute Error):      63.03 $
+R-squared (Out-of-sample):      0.8166
+
+--- Đánh giá Mô hình MLR Nâng cao (Log-Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 50 / 50
+RMSE (Root Mean Squared Error): 70.10 $
+MAE (Mean Absolute Error):      47.77 $
+R-squared (Out-of-sample):      0.8614
+
+--- Tác động của các biến (Feature Importance) trên Mô hình Chuẩn hóa ---
+
+Call:
+lm(formula = log(Release_Price) ~ Max_Power + Memory + log_Memory_Bandwidth +
+    Core_Speed + Manufacturer + Memory_Type + Release_Year, data = train_data_scaled)
+
+Residuals:
+     Min       1Q   Median       3Q      Max
+-0.80605 -0.11280  0.00718  0.11127  0.67013
+
+Coefficients:
+                      Estimate Std. Error t value Pr(>|t|)
+(Intercept)           5.827300   0.077610  75.084  < 2e-16 ***
+Max_Power             0.156266   0.018165   8.603  < 2e-16 ***
+Memory                0.011059   0.015619   0.708  0.47930
+log_Memory_Bandwidth  0.460272   0.025048  18.375  < 2e-16 ***
+Core_Speed            0.143835   0.018433   7.803 4.51e-14 ***
+ManufacturerNvidia    0.271739   0.025264  10.756  < 2e-16 ***
+Memory_TypeGDDR3     -0.472720   0.083832  -5.639 3.08e-08 ***
+Memory_TypeGDDR5     -0.511947   0.076650  -6.679 7.35e-11 ***
+Memory_TypeGDDR5X    -0.423272   0.097513  -4.341 1.77e-05 ***
+Memory_TypeHBM-1     -0.451867   0.138649  -3.259  0.00121 **
+Memory_TypeHBM-2      0.008618   0.135783   0.063  0.94942
+Release_Year         -0.211468   0.018865 -11.210  < 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.1949 on 436 degrees of freedom
+Multiple R-squared:  0.9052,    Adjusted R-squared:  0.9028 
+F-statistic: 378.6 on 11 and 436 DF,  p-value: < 2.2e-16
+
+
+
+===========================================
+DỰ ĐOÁN GIÁ GPU MỚI (OUT-OF-SAMPLE - VÌ KHOA HỌC)
+===========================================
+               GPU ThucTe        Linear    LogLinear
+1 GeForce GTX 1660   219$ 271$ (+23.5%) 240$ (+9.4%)
+2    Radeon RX 590   279$ 323$ (+15.8%) 272$ (-2.5%)
+3 GeForce RTX 3060   329$ 469$ (+42.7%) 348$ (+5.7%)
+
+
+===========================================
+TẠO CÁC BIỂU ĐỒ (LƯU VÀO THƯ MỤC figures/)
+===========================================
+--- Đã xuất figures/correlation_matrix.png ---
+--- Đã xuất figures/diagnostic_residuals.png ---
+--- Đã xuất figures/price_distribution_compare.png ---
+--- Đã xuất figures/coefficient_importance.png ---
+--- Đã xuất figures/residual_histogram.png ---
+--- Đã xuất figures/scatter_actual_vs_predicted.png ---
