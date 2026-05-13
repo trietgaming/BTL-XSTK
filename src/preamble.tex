@@ -15,10 +15,12 @@
 \usepackage{lastpage}
 \usepackage[lined,boxed,commentsnumbered]{algorithm2e}
 \usepackage{enumerate}
+\usepackage[shortlabels]{enumitem}
+\setlist{topsep=3pt, itemsep=1pt, parsep=0pt}
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage{tabularx, caption}
-\captionsetup{labelfont=bf,textfont=bf,justification=centering}
+\captionsetup{labelfont=bf,textfont=bf,justification=centering,skip=4pt}
 \usepackage{multirow}
 \usepackage[framemethod=tikz]{mdframed}
 \usepackage{rotating}
@@ -26,6 +28,10 @@
 \usepackage{longtable}
 \usepackage{geometry}
 \usepackage{setspace}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{12pt plus 2pt minus 2pt}{6pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{9pt plus 2pt minus 2pt}{4pt plus 1pt minus 1pt}
+\titlespacing*{\subsubsection}{0pt}{7pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}
 \usepackage{tikz}
 \usepackage{minted}
 \usemintedstyle{colorful}
@@ -33,10 +39,16 @@
     fontsize=\small,
     breaklines=true,
     frame=lines,
-    framesep=2mm,
-    baselinestretch=1.2,
+    framesep=1.5mm,
+    baselinestretch=1.0,
     linenos=true
 }
+% Giảm khoảng trắng trên/dưới float (hình ảnh)
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
 
 % Định nghĩa style cho console output dùng minted
 \newminted[rconsole]{text}{
