@@ -42,69 +42,69 @@ if (!dir.exists("figures")) {
   dir.create("figures")
 }
 
-# Đếm NA và các chuỗi rỗng/không hợp lệ
-missing_count <- sapply(raw_data, function(col) {
-  if (is.character(col)) {
-    cleaned <- str_trim(col)
-    sum(is.na(col) | cleaned == "" | cleaned == "-")
-  } else {
-    sum(is.na(col))
-  }
-})
-missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
+# # Đếm NA và các chuỗi rỗng/không hợp lệ
+# missing_count <- sapply(raw_data, function(col) {
+#   if (is.character(col)) {
+#     cleaned <- str_trim(col)
+#     sum(is.na(col) | cleaned == "" | cleaned == "-")
+#   } else {
+#     sum(is.na(col))
+#   }
+# })
+# missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
 
-missing_df <- data.frame(
-  variable = names(missing_pct),
-  pct = as.numeric(missing_pct),
-  kept = names(missing_pct) %in% kept_vars
-)
-missing_df <- missing_df[order(-missing_df$pct), ]
+# missing_df <- data.frame(
+#   variable = names(missing_pct),
+#   pct = as.numeric(missing_pct),
+#   kept = names(missing_pct) %in% kept_vars
+# )
+# missing_df <- missing_df[order(-missing_df$pct), ]
 
-# Phân loại biến để trực quan hóa
-other_vars <- missing_df[!missing_df$kept & missing_df$pct < 30, ]
-avg_other_pct <- mean(other_vars$pct)
-other_count <- nrow(other_vars)
+# # Phân loại biến để trực quan hóa
+# other_vars <- missing_df[!missing_df$kept & missing_df$pct < 30, ]
+# avg_other_pct <- mean(other_vars$pct)
+# other_count <- nrow(other_vars)
 
-missing_df_plot <- rbind(
-  missing_df[missing_df$kept | missing_df$pct >= 30, ],
-  data.frame(
-    variable = paste("Trung bình các biến khác", sprintf("(%d)", other_count)),
-    pct = avg_other_pct,
-    kept = FALSE
-  )
-)
+# missing_df_plot <- rbind(
+#   missing_df[missing_df$kept | missing_df$pct >= 30, ],
+#   data.frame(
+#     variable = paste("Trung bình các biến khác", sprintf("(%d)", other_count)),
+#     pct = avg_other_pct,
+#     kept = FALSE
+#   )
+# )
 
-# Thiết lập màu sắc cho biểu đồ (Xanh: Giữ, Đỏ: Loại >= 30%, Xám: Khác)
-bar_colors_plot <- with(
-  missing_df_plot,
-  ifelse(kept, "#2c7fb8",
-    ifelse(pct >= 30, "#e34a33", "#bdbdbd")
-  )
-)
+# # Thiết lập màu sắc cho biểu đồ (Xanh: Giữ, Đỏ: Loại >= 30%, Xám: Khác)
+# bar_colors_plot <- with(
+#   missing_df_plot,
+#   ifelse(kept, "#2c7fb8",
+#     ifelse(pct >= 30, "#e34a33", "#bdbdbd")
+#   )
+# )
 
-# Xuất biểu đồ tỷ lệ dữ liệu khuyết
-png("figures/missing_data_ratio.png",
-  type = "cairo",
-  width = 2400, height = 1400, res = 300
-)
-par(mar = c(5, 15, 4, 2))
-barplot(rev(missing_df_plot$pct),
-  names.arg = rev(missing_df_plot$variable),
-  horiz = TRUE, las = 1,
-  col = rev(bar_colors_plot),
-  xlim = c(0, 100),
-  xlab = "Tỷ lệ dữ liệu khuyết (%)",
-  main = paste("Tỷ lệ dữ liệu khuyết (N =", nrow(raw_data), ")"),
-  cex.names = 0.85, cex.main = 1.05
-)
-abline(v = 30, col = "red", lty = 2, lwd = 1.5)
-legend("bottomright",
-  legend = c("Biến được chọn", "Bị loại (thiếu >= 30%)", "Các biến khác"),
-  fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
-  cex = 0.85, bty = "n"
-)
-dev.off()
-cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
+# # Xuất biểu đồ tỷ lệ dữ liệu khuyết
+# png("figures/missing_data_ratio.png",
+#   type = "cairo",
+#   width = 2400, height = 1400, res = 300
+# )
+# par(mar = c(5, 15, 4, 2))
+# barplot(rev(missing_df_plot$pct),
+#   names.arg = rev(missing_df_plot$variable),
+#   horiz = TRUE, las = 1,
+#   col = rev(bar_colors_plot),
+#   xlim = c(0, 100),
+#   xlab = "Tỷ lệ dữ liệu khuyết (%)",
+#   main = paste("Tỷ lệ dữ liệu khuyết (N =", nrow(raw_data), ")"),
+#   cex.names = 0.85, cex.main = 1.05
+# )
+# abline(v = 30, col = "red", lty = 2, lwd = 1.5)
+# legend("bottomright",
+#   legend = c("Biến được chọn", "Bị loại (thiếu >= 30%)", "Các biến khác"),
+#   fill = c("#2c7fb8", "#e34a33", "#bdbdbd"),
+#   cex = 0.85, bty = "n"
+# )
+# dev.off()
+# cat("\n--- Đã xuất figures/missing_data_ratio.png ---\n")
 
 selected_data <- raw_data %>% select(all_of(kept_vars))
 
@@ -121,9 +121,6 @@ selected_data <- selected_data %>%
 # Loại bỏ các GPU của Intel (Tại thời điểm 2017 Intel chưa đóng góp nhiều vào thị trường card rời)
 clean_data <- selected_data %>% filter(Manufacturer != "Intel")
 
-# Loại bỏ các dòng không có giá niêm yết (biến phụ thuộc Y)
-clean_data <- clean_data %>% filter(!is.na(Release_Price))
-
 # Đồng nhất nhãn: chuyển "ATI" thành "AMD"
 clean_data <- clean_data %>%
   mutate(Manufacturer = str_replace(Manufacturer, "ATI", "AMD"))
@@ -131,13 +128,6 @@ clean_data <- clean_data %>%
 # Loại bỏ các mẫu GPU không phù hợp (Quadro, Crossfire, SLI, chưa phát hành, Titan)
 clean_data <- clean_data %>%
   filter(!str_detect(Name, regex("Quadro|Crossfire|SLI|not[ .]released|Titan", ignore_case = TRUE)))
-
-num_row_clean <- nrow(clean_data)
-
-cat("Dữ liệu sau khi làm sạch sơ bộ: N =", num_row_clean, "\n")
-
-
-# ------------ Xử lý Năm phát hành và Trích xuất số từ chuỗi --------------
 
 # Tách Năm từ cột Release_Date, đổi tên thành Release_Year và xóa cột gốc
 clean_data <- clean_data %>%
@@ -154,13 +144,20 @@ clean_data <- clean_data %>%
     Core_Speed = as.numeric(str_extract(Core_Speed, "\\d+\\.?\\d*"))
   )
 
-# ------ Chuyển đổi các biến định danh sang kiểu Factor ------
+# Chuyển đổi các biến định danh sang kiểu Factor
 
 clean_data <- clean_data %>%
   mutate(
     Manufacturer = as.factor(Manufacturer),
     Memory_Type = as.factor(Memory_Type)
   )
+
+# Loại bỏ các dòng không có giá niêm yết (biến phụ thuộc Y)
+clean_data <- clean_data %>% filter(!is.na(Release_Price))
+
+num_row_clean <- nrow(clean_data)
+
+cat("Dữ liệu sau khi làm sạch sơ bộ: N =", num_row_clean, "\n")
 
 # ------------------ NHẬN DIỆN NGOẠI LAI (RANH GIỚI TUKEY) -----------------
 cat("\n--- NHẬN DIỆN NGOẠI LAI (Tukey 1.5 * IQR) ---\n")

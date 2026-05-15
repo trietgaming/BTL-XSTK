@@ -7,28 +7,28 @@
 
 Đề tài đặt ra hai câu hỏi nghiên cứu chính và cả hai đã được trả lời thỏa đáng bằng bằng chứng thống kê rõ ràng:
 
-\textbf{Câu hỏi 1 --- Thông số kỹ thuật nào ảnh hưởng đến giá GPU?} Mô hình Log-Linear ($R^2 = 81{,}89\%$) xác nhận cả 6 thông số đều có ý nghĩa ($p < 0{,}001$). TDP ảnh hưởng mạnh nhất ($+55{,}8\%$/SD), tiếp theo là xung nhịp lõi ($+18{,}5\%$/SD), dung lượng RAM ($+12{,}5\%$/SD), và băng thông bus ($+5{,}8\%$/SD).
+\textbf{Câu hỏi 1 --- Thông số kỹ thuật nào ảnh hưởng đến giá GPU?} Mô hình Log-Linear ($R^2 = 86{,}99\%$) xác nhận vai trò quan trọng của băng thông bộ nhớ ($\beta = 0{,}3999$), tiếp theo là xung nhịp lõi và công suất tiêu thụ (Max Power). Đáng chú ý, kết quả cho thấy dung lượng RAM không có ý nghĩa thống kê độc lập khi đã đưa vào yếu tố tốc độ và loại RAM.
 
-\textbf{Câu hỏi 2 --- Chênh lệch giá NVIDIA vs AMD?} Welch's ANOVA ($F = 86{,}331$, $p < 2{,}2 \times 10^{-16}$): chênh lệch trung bình \textbf{\$132,15} trong phân khúc Consumer/Prosumer. Mô hình hồi quy cho thấy cùng thông số, NVIDIA đắt hơn AMD \textbf{32{,}1\%} --- phần lớn do chiến lược định giá và hệ sinh thái CUDA, không phải cấu hình phần cứng đơn thuần.
+\textbf{Câu hỏi 2 --- Chênh lệch giá NVIDIA vs AMD?} Welch's ANOVA ($F = 31{,}67$, $p < 0{,}001$) cho thấy mức chênh lệch giá trung bình \textbf{\$69,61} giữa hai hãng. Mô hình hồi quy cũng xác định rằng với cùng cấu hình phần cứng, card NVIDIA thường đắt hơn khoảng \textbf{23{,}3\%} ($e^{0{,}2097} - 1$) so với AMD --- một con số định lượng cụ thể cho giá trị hệ sinh thái CUDA và chiến lược định giá của NVIDIA.
 
-Kết quả \textbf{vượt xa kỳ vọng}: $R^2 = 81{,}89\%$ (mục tiêu $\geq 70\%$). Việc bóc tách các GPU dị biệt cấu trúc (Crossfire, Quadro) kết hợp mô hình Log-Linear đã mang lại độ chính xác cực cao, vừa hợp lý về mặt thống kê (phần dư đạt xấp xỉ chuẩn hoàn hảo $W = 0{,}982$) vừa tối ưu về mặt diễn giải kinh tế (tác động theo phần trăm).
+Kết quả \textbf{vượt xa kỳ vọng}: Mô hình không chỉ giải thích được $86{,}99\%$ sự biến thiên về giá mà còn \textbf{hoàn toàn vượt qua kiểm định phương sai đồng nhất} Breusch-Pagan ($p = 0{,}1963$). Sự kết hợp giữa biến đổi Log-Linear và các biến về băng thông, loại bộ nhớ đã mang lại dự báo chính xác cao (sai số trên tập Test chỉ ở mức MAE = \$33,50).
 
 \subsection{Hạn chế và đề xuất cải tiến}
 
 \begin{enumerate}
-  \item \textbf{Phương sai sai số còn dao động nhẹ} ($BP = 35{,}48$, $p \approx 3{,}48 \times 10^{-6}$). Dù đã giảm đáng kể và mức độ không còn nghiêm trọng, hiện tượng này vẫn tồn tại do dải giá rộng. \textit{Đề xuất:} Có thể thử nghiệm Weighted Least Squares (WLS).
-  \item \textbf{Sự phụ thuộc vào cỡ mẫu (P-value sensitivity):} Dù phân phối phần dư có dạng hình chuông tuyệt đẹp và cực kỳ đối xứng ($W = 0{,}989$), p-value của kiểm định Shapiro-Wilk ($W = 0{,}982$) vẫn $< 0{,}05$ do cỡ mẫu quá lớn ($N=514$). Định lý Giới hạn Trung tâm (CLT) là cứu cánh vững chắc trong trường hợp này.
-  \item \textbf{Selection bias} do loại hơn 80\% quan sát thiếu giá (MNAR). \textit{Đề xuất:} Bổ sung dữ liệu giá phát hành từ Archive.org hoặc Multiple Imputation.
-  \item \textbf{Không xét tương tác biến.} \textit{Đề xuất:} Thêm interaction terms (ví dụ: \texttt{tdp:manufacturer}) để xem chiến lược tản nhiệt của 2 hãng khác nhau thế nào.
+  \item \textbf{Sự phụ thuộc vào cỡ mẫu (P-value sensitivity) trong kiểm định phần dư:} Dù đã vượt qua xuất sắc kiểm định BP về phương sai, phân phối phần dư (dù có $W = 0{,}964$ rất cao và biểu đồ dạng chuông đẹp mắt) vẫn có p-value Shapiro-Wilk $< 0{,}05$ do cỡ mẫu đủ lớn ($N=401$). Định lý Giới hạn Trung tâm (CLT) là cơ sở vững chắc cho các suy diễn thống kê ở đây, nhưng có thể thử nghiệm bootstrap để xác nhận thêm trong tương lai.
+  \item \textbf{Thiên lệch chọn mẫu (Selection Bias) do dữ liệu khuyết:} Việc lọc bỏ những GPU thiếu giá Niêm yết (hơn 80\% tổng dữ liệu cào được) có thể gây ra MNAR. \textit{Đề xuất:} Bổ sung nguồn thu thập giá lịch sử từ Archive.org hoặc áp dụng Multiple Imputation quy mô lớn thay vì chỉ điền khuyết KNN.
+  \item \textbf{Ảnh hưởng của đại dịch và chuỗi cung ứng:} Dữ liệu chưa tách bạch được giai đoạn bong bóng tiền ảo hoặc thiếu hụt chip (2020-2022). \textit{Đề xuất:} Bổ sung biến kiểm soát (control variables) cho các cú sốc vĩ mô.
+  \item \textbf{Không xét tương tác biến:} \textit{Đề xuất:} Thêm interaction terms (ví dụ: \texttt{max\_power:manufacturer}) để xem cách hai hãng định giá dựa trên mức độ tiêu thụ điện năng.
 \end{enumerate}
 
 \subsection{Ý nghĩa thực tiễn}
 
 \begin{enumerate}
-  \item \textbf{Công cụ định giá:} Phương trình Log-Linear cho phép ước lượng giá hợp lý dựa trên thông số kỹ thuật. Nếu giá thực tế vượt xa giá mô hình (như trường hợp của các card Crossfire/Hydro Copper bị bóc tách), đó là tín hiệu của các sản phẩm có tính định giá dị biệt hoặc "ảo giá".
-  \item \textbf{Định lượng ``phí thương hiệu'':} NVIDIA đắt hơn AMD $\approx 31{,}5\%$ cùng thông số trong phân khúc Consumer/Prosumer --- cơ sở để người tiêu dùng cân nhắc ngân sách vs. giá trị hệ sinh thái phần mềm.
-  \item \textbf{Ngân sách doanh nghiệp:} Mô hình giúp so sánh hiệu suất/giá trị thực giữa các GPU trước khi đầu tư hàng loạt.
-  \item \textbf{Tín hiệu thị trường:} GPU ra sau rẻ hơn $\approx 4{,}0\%$/năm ($\beta_{year} = -0{,}041$), định lượng chính xác sự sụt giá của sức mạnh phần cứng theo thời gian.
+  \item \textbf{Công cụ định giá chính xác:} Phương trình Log-Linear mang lại khả năng ước lượng giá trị nội tại hợp lý của một GPU với sai số rất thấp (khoảng 1\% - 6\% cho nhiều sản phẩm). Đây là nền tảng phát hiện thẻ đồ họa đang bị định giá quá cao (overpriced) hay được bán dưới giá trị thực.
+  \item \textbf{Định lượng "phí thương hiệu":} Người dùng nay đã có cơ sở khoa học để biết rằng họ đang trả thêm $\approx 23{,}3\%$ ngân sách chỉ cho logo NVIDIA và bộ công cụ phần mềm độc quyền.
+  \item \textbf{Tối ưu hóa ngân sách:} Phân tích chỉ ra rằng việc nhắm mắt mua dung lượng RAM khổng lồ mà băng thông yếu sẽ không kinh tế bằng việc đầu tư vào tốc độ băng thông cao (như chuẩn GDDR6, HBM).
+  \item \textbf{Định lượng xu hướng lỗi thời:} Hệ số âm cực kỳ rõ ràng của năm phát hành ($\beta = -0{,}2208$) định lượng chính xác định luật giảm giá của sức mạnh tính toán công nghệ theo thời gian.
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

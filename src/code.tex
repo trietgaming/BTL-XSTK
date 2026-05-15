@@ -1,443 +1,244 @@
 % !TEX root = main.tex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Code và Xử lý dữ liệu}
+\section{Thực thi Code và Xử lý dữ liệu}
 \label{sec:code_xu_ly_du_lieu}
 
-\subsection{Bước 1: Tải dữ liệu và xác định biến phân tích}
-\label{sec:buoc_1_tai_du_lieu}
-
-Bước đầu tiên là cơ sở để nhìn toàn cảnh 34 thuộc tính và quyết định biến nào đáng giữ lại. Code tải dữ liệu và phân tích tỷ lệ khuyết được thực hiện liên tiếp trong cùng một luồng:
+\subsection{Bước 1: Tải dữ liệu và Chọn lọc 8 biến}
+\label{sec:buoc_1}
+Đầu tiên, hệ thống nạp dữ liệu thô từ tập tin \texttt{All\_GPUs.csv} gồm 3.406 quan sát và chọn lọc 8 biến quan trọng đã được thống nhất (thêm biến \texttt{Name} để định danh):
 
 \begin{minted}{R}
-library(stringr); library(dplyr); library(car); library(lmtest)
-if (!dir.exists("figures")) dir.create("figures")
-
-# Đọc dữ liệu thô: 3.406 quan sát x 34 biến
+kept_vars <- c(
+  "Name", "Release_Price", "Max_Power", "Memory", "Memory_Bandwidth",
+  "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type"
+)
 raw_data <- read.csv("All_GPUs.csv", stringsAsFactors = FALSE)
-
-# Đếm NA và chuỗi rỗng / không hợp lệ trên cả 34 thuộc tính
-missing_count <- sapply(raw_data, function(col) {
-  if (is.character(col)) {
-    cleaned <- str_trim(col)
-    sum(is.na(col) | cleaned == "" | cleaned == "-")
-  } else sum(is.na(col))
-})
-missing_pct <- round(100 * missing_count / nrow(raw_data), 2)
+selected_data <- raw_data %>% select(all_of(kept_vars))
 \end{minted}
+\texttt{all\_of()} ném lỗi rõ ràng nếu tên cột không tồn tại, tránh silent drop so với truyền tên cột trực tiếp vào \texttt{select()}.
 
-Hàm \texttt{sapply} duyệt qua từng cột: với cột ký tự, bắt cả \texttt{NA} lẫn chuỗi rỗng và dấu gạch; với cột số, chỉ cần \texttt{is.na()}.
-
-Từ vector \texttt{missing\_pct}, nhóm lọc biến trực tiếp theo điều kiện ngưỡng 30\%:
+\subsection{Bước 2: Làm sạch, xóa khuyết giá và ép kiểu}
+\label{sec:buoc_2}
+Pipeline 5 thao tác tuần tự: \texttt{across(where(is.character))} chuẩn hóa chuỗi đồng loạt; \texttt{str\_detect()} với regex lọc tên GPU; \texttt{str\_extract()} trích số từ chuỗi đơn vị và tự trả về \texttt{NA} nếu không khớp; \texttt{as.factor()} ép kiểu phân loại:
 
 \begin{minted}{R}
-# Tầng 3: xác định biến bị loại do tỷ lệ khuyết >= 30%
-# Bỏ qua biến phụ thuộc (Y) Release_Price vì dòng chứa NA sẽ bị xóa ở bước sau
-dropped_high_missing <- names(missing_pct[missing_pct >= 30 & names(missing_pct) != "Release_Price"])
-cat("Biến bị loại (tầng 3, thiếu >= 30%):\n",
-    paste(dropped_high_missing, collapse = ", "), "\n")
-\end{minted}
-
-Kết quả các biến bị loại ở tầng 3: 
-
-\begin{rconsole}
---- Biến có tỷ lệ khuyết >= 30% (tầng 3) ---
-Boost_Clock, DisplayPort_Connection, PSU 
-\end{rconsole}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{figures/missing_data_ratio.png}
-    \caption{Tỷ lệ dữ liệu khuyết của 34 thuộc tính ($N = 3.406$). Đường đỏ đứt nét: ngưỡng loại 30\%.}
-    \label{fig:missing_ratio}
-\end{figure}
-
-Kết hợp với việc loại các biến định danh, dẫn xuất không mang ý nghĩa kinh tế ở tầng 1 và tầng 2 (chi tiết xem tại mục \ref{sec:thu_hep_khong_gian}), ta còn lại 8 biến quan trọng sau:
-
-\begin{minted}{R}
-kept_vars <- c("Release_Price", "Max_Power", "Memory", "Memory_Bus",
-               "Core_Speed", "Release_Date", "Manufacturer", "Memory_Type")
-\end{minted}
-
-Chi tiết 8 biến sẽ được sử dụng trong mô hình:
-
-\renewcommand{\arraystretch}{1.1}
-\small
-\setlength\LTleft{\fill}
-\setlength\LTright{\fill}
-\begin{longtable}{|l|l|p{5.5cm}|l|}
-\caption{Danh sách biến sử dụng trong mô hình và vai trò tương ứng}
-\label{tab:bien} \\
-\hline
-\textbf{Biến} & \textbf{Kiểu} & \textbf{Mô tả} & \textbf{Vai trò} \\
-\hline
-\endfirsthead
-\hline
-\textbf{Biến} & \textbf{Kiểu} & \textbf{Mô tả} & \textbf{Vai trò} \\
-\hline
-\endhead
-\hline
-\endlastfoot
-\texttt{Manufacturer} & Nominal & Hãng sản xuất (NVIDIA, AMD) & Độc lập (phân loại) \\
-\texttt{Memory\_Type} & Nominal & Chuẩn VRAM (GDDR5, GDDR3, DDR3, HBM\ldots) & Loại bỏ (VIF $= 6{,}58$) \\
-\texttt{Memory\_Bus} & Rời rạc & Băng thông bộ nhớ (bit) & Độc lập (số) \\
-\texttt{Memory} & Rời rạc & Dung lượng VRAM (GB/MB) & Độc lập (số) \\
-\texttt{Max\_Power} & Liên tục & Công suất tiêu thụ (Watt) & Độc lập (số) \\
-\texttt{Core\_Speed} & Liên tục & Tốc độ xung nhịp lõi (MHz) & Độc lập (số) \\
-\texttt{Release\_Date} & Số nguyên & Năm phát hành (parse từ Release\_Date) & Độc lập (số) \\
-\texttt{Release\_Price} & Liên tục & Giá phát hành (USD) & Phụ thuộc $Y$ \\
-\hline
-\end{longtable}
-\normalsize
-
-\subsection{Bước 2: Chọn lọc, đổi tên và ép kiểu dữ liệu}
-\label{sec:buoc_2_chon_loc}
-
-Với 8 biến đã xác định ở Bước~\ref{sec:buoc_1_tai_du_lieu}, Bước~\ref{sec:buoc_2_chon_loc} thực hiện 4 thao tác độc lập và có thứ tự: chọn và đổi tên cột, gộp nhãn ATI $\to$ AMD, trích xuất số từ chuỗi, và parse ngày tháng thành năm.
-
-\subsubsection*{2.1. Chọn cột và đổi tên}
-
-Từ 34 cột ban đầu, chỉ giữ lại đúng 8 cột phân tích cùng cột \texttt{Name} (dùng để nhận diện ngoại lai cấu trúc ở Bước~7) và đổi tên theo quy ước snake\_case:
-
-\begin{minted}{R}
-df <- raw_data %>%
-  select(Name, Release_Price, Max_Power, Memory, Memory_Bus,
-         Core_Speed, Release_Date, Manufacturer, Memory_Type) %>%
-  rename(
-    name          = Name,
-    release_price = Release_Price, tdp          = Max_Power,
-    memory_size   = Memory,        memory_bus   = Memory_Bus,
-    core_speed    = Core_Speed,    release_date = Release_Date,
-    manufacturer  = Manufacturer,  memory_type  = Memory_Type
-  )
-\end{minted}
-
-\textbf{\texttt{select()}}: Thu hẹp data frame từ 34 xuống 9 cột (8 biến phân tích + \texttt{name}). Ở thời điểm này tất cả biến vẫn ở kiểu \texttt{chr} --- chưa có bất kỳ ép kiểu nào.
-
-\textbf{\texttt{rename()}}: Đổi tên sang snake\_case ngắn gọn để code ở các bước sau dễ đọc và ít lỗi chính tả hơn.
-
-\subsubsection*{2.2. Gộp nhãn ATI $\to$ AMD}
-
-Lý do gộp đã trình bày tại Phần~2.2; đây là bước thực thi:
-
-\begin{minted}{R}
-df <- df %>%
+clean_data <- selected_data %>%
+  mutate(across(where(is.character), 
+                ~ ifelse(str_trim(.) %in% c("", "-", "NA", "N/A"), NA, str_trim(.)))) %>%
+  filter(Manufacturer != "Intel") %>%
+  mutate(Manufacturer = str_replace(Manufacturer, "ATI", "AMD")) %>%
+  filter(!str_detect(Name, regex("Quadro|Crossfire|SLI|not[ .]released|Titan", ignore_case = TRUE))) %>%
+  mutate(Release_Year = as.integer(format(as.Date(Release_Date, "%d-%b-%Y"), "%Y"))) %>%
+  select(-Release_Date) %>%
   mutate(
-    manufacturer = ifelse(str_trim(manufacturer) == "ATI", "AMD",
-                          str_trim(manufacturer))
-  )
-\end{minted}
-
-\textbf{\texttt{str\_trim()}}: Xóa khoảng trắng đầu/cuối chuỗi.
-
-\textbf{\texttt{ifelse()}}: Thay thế trực tiếp chuỗi \texttt{"ATI"} bằng \texttt{"AMD"}.
-
-Kết quả kiểm tra sau khi gộp:
-\begin{rconsole}
-> table(df$manufacturer)
- AMD Intel Nvidia
-1409   254   1743
-\end{rconsole}
-
-Ta thấy toàn bộ card ATI đã được gán vào nhóm AMD.
-
-\subsubsection*{2.3. Trích xuất số từ chuỗi có đơn vị}
-
-\begin{minted}{R}
-df <- df %>%
-  mutate(
-    release_price = as.numeric(str_extract(release_price, "\\d+\\.?\\d*")),
-    tdp           = as.numeric(str_extract(tdp,           "\\d+\\.?\\d*")),
-    memory_size   = as.numeric(str_extract(memory_size,   "\\d+\\.?\\d*")),
-    memory_bus    = as.numeric(str_extract(memory_bus,    "\\d+\\.?\\d*")),
-    core_speed    = as.numeric(str_extract(core_speed,    "\\d+\\.?\\d*"))
-  )
-\end{minted}
-
-Regex \texttt{"{\textbackslash}d+{\textbackslash}.?{\textbackslash}d*"} khớp với: một hoặc nhiều chữ số, theo sau là dấu chấm thập phân tùy chọn và các chữ số thập phân --- ví dụ: \texttt{"738 MHz"} $\to$ \texttt{"738"} $\to$ \texttt{738}; \texttt{"14.999"} $\to$ \texttt{"14.999"} $\to$ \texttt{14999}.
-
-Chuỗi không hợp lệ (\texttt{""}, \texttt{"-"}, \texttt{"N/A"}) không khớp regex $\to$ \texttt{str\_extract()} trả về \texttt{NA} $\to$ \texttt{as.numeric(NA)} trả về \texttt{NA}. Đây là hành vi \textit{mong muốn}: biến các chuỗi rỗng thành \texttt{NA} thực sự để bước điền khuyết ở Bước~\ref{sec:buoc_4_dien_khuyết} xử lý nhất quán.
-
-\subsubsection*{2.4. Parse chuỗi ngày tháng $\to$ năm}
-
-\begin{minted}{R}
-df <- df %>%
-  mutate(
-    release_year = as.integer(
-      format(as.Date(str_trim(release_date), "%d-%b-%Y"), "%Y"))
+    Release_Price = as.numeric(str_extract(Release_Price, "\\d+\\.?\\d*")),
+    Max_Power = as.numeric(str_extract(Max_Power, "\\d+\\.?\\d*")),
+    Memory = as.numeric(str_extract(Memory, "\\d+\\.?\\d*")),
+    Memory_Bandwidth = as.numeric(str_extract(Memory_Bandwidth, "\\d+\\.?\\d*")),
+    Core_Speed = as.numeric(str_extract(Core_Speed, "\\d+\\.?\\d*"))
   ) %>%
-  select(-release_date)
+  mutate(Manufacturer = as.factor(Manufacturer), Memory_Type = as.factor(Memory_Type))
+
+# Loại bỏ các dòng không có giá niêm yết (biến Y)
+clean_data <- clean_data %>% filter(!is.na(Release_Price))
 \end{minted}
+\texttt{across(where(is.character))} áp closure lên toàn bộ cột ký tự trong một lần; regex trong \texttt{str\_extract()} trả về \texttt{NA} khi không khớp — chuỗi rỗng/đơn vị sẽ tự thành \texttt{NA} mà không cần xử lý riêng.
 
-\textbf{\texttt{as.Date(..., "\%d-\%b-\%Y")}}: Parse chuỗi theo định dạng ngày-tháng viết tắt-năm (\texttt{"\%b"} là Jan, Feb, Mar\ldots). 
+Kết quả sau khi lọc: Tập dữ liệu còn lại 498 quan sát.
 
-\textbf{\texttt{format(..., "\%Y")}}: Trích lấy 4 chữ số năm dưới dạng chuỗi. 
-
-\textbf{\texttt{as.integer()}}: Chuyển thành số nguyên liên tục phù hợp cho hồi quy.
-
-\textbf{\texttt{select(-release\_date)}}: Bỏ cột chuỗi gốc sau khi đã tách năm, tránh nhầm lẫn ở các bước sau.
-
-Chuỗi không parse được (thiếu ngày, định dạng sai) tự động trở thành \texttt{NA} và được xử lý ở Bước~\ref{sec:buoc_4_dien_khuyết}.
-
-\subsubsection*{Kết quả sau Bước 2}
-
-\begin{rconsole}
-> str(df)
-'data.frame':  3406 obs. of  8 variables:
- $ release_price: num  NA NA 499 NA 449 399 NA NA ...
- $ tdp          : num  NA 105 75 NA 150 170 95 NA ...
- $ memory_size  : num  2048 4096 1024 1024 4096 2048 ...
- $ memory_bus   : num  NA 256 128 128 256 256 128 ...
- $ core_speed   : num  NA 700 700 650 900 850 650 ...
- $ manufacturer : chr  "AMD" "AMD" "AMD" "AMD" ...
- $ memory_type  : chr  "GDDR5" "GDDR5" "GDDR3" "GDDR3" ...
- $ release_year : int  NA 2010 2009 2010 2010 2009 ...
-\end{rconsole}
-
-Tất cả 5 biến số đã ở kiểu \texttt{num}/\texttt{int}; các chuỗi không hợp lệ đã chuyển thành \texttt{NA} thực sự (nhìn thấy được qua \texttt{is.na()}); cột \texttt{release\_date} đã bị loại. Bộ dữ liệu \textbf{3.406 quan sát $\times$ 8 biến} sẵn sàng cho Bước~\ref{sec:buoc_3_ngoai_lai}.
-
-\subsection{Bước 3: Nhận diện ngoại lai (IQR trên tập gốc)}
-\label{sec:buoc_3_ngoai_lai}
-
-Theo nguyên tắc đã trình bày ở Phần~\ref{sec:co_so_ly_thuyet}, ranh giới IQR phải được tính \textbf{trước khi lọc hay điền khuyết}. Nhóm tính ngưỡng Tukey trên tập thô rồi đưa trực tiếp vào bộ lọc Bước~\ref{sec:buoc_4_dien_khuyết}:
+\subsection{Bước 3: Xử lý ngoại lai (IQR)}
+\label{sec:buoc_3}
+Hàm \texttt{calc\_tukey()} đóng gói 5 giá trị thống kê vào một list; điều kiện \texttt{| is.na(Release\_Price)} trong \texttt{filter()} giữ lại quan sát chưa có giá, tránh loại nhầm:
 
 \begin{minted}{R}
-# Tính ngưỡng Tukey cho release_price trên tập thô (N = 3.406)
-price_raw_vec <- na.omit(df$release_price)
-price_q3_raw  <- quantile(price_raw_vec, 0.75)
-price_iqr_raw <- price_q3_raw - quantile(price_raw_vec, 0.25)
-price_upper   <- price_q3_raw + 1.5 * price_iqr_raw  # => $814
-
-# Hàm đếm giá trị ngoại lai còn lại (dùng cho TDP, core_speed)
-count_outliers_by_raw_bounds <- function(raw_vec, clean_vec) {
-  raw_vec <- na.omit(raw_vec)
-  q3 <- quantile(raw_vec, 0.75); iqr <- q3 - quantile(raw_vec, 0.25)
-  return(sum(clean_vec > q3 + 1.5 * iqr, na.rm = TRUE))
+calc_tukey <- function(vec) {
+  v <- na.omit(vec)
+  q1 <- quantile(v, 0.25); q3 <- quantile(v, 0.75); iqr <- q3 - q1
+  list(q1 = q1, q3 = q3, iqr = iqr, lower = q1 - 1.5 * iqr, upper = q3 + 1.5 * iqr)
 }
+price_bnd <- calc_tukey(clean_data$Release_Price)
+clean_data <- clean_data %>% filter(Release_Price <= price_bnd$upper | is.na(Release_Price))
 \end{minted}
-
-Ngưỡng trên của \texttt{release\_price} tính được là \$814. Toàn bộ 33 quan sát vượt ngưỡng này đều thuộc phân khúc Workstation/Enterprise (lý do loại bỏ tại Phần~\ref{sec:co_so_ly_thuyet}). Kết quả được trực quan hóa qua Hình~\ref{fig:boxplot_outliers}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.92\textwidth]{figures/boxplot_outliers.png}
-    \caption{Boxplot của ba biến trên tập dữ liệu gốc trước khi lọc. Đường nét đứt màu đỏ thể hiện ngưỡng cắt \$814}
-    \label{fig:boxplot_outliers}
-\end{figure}
-
-\subsection{Bước 4: Loại quan sát không hợp lệ và điền giá trị khuyết}
-\label{sec:buoc_4_dien_khuyết}
-
-Bước này thực hiện hai thao tác tuần tự: (i)~lọc bỏ các dòng thiếu giá, hãng Intel, và Outliers phát hiện ở bước trước (ii)~điền khuyết cho các biến còn lại theo chiến lược đã trình bày tại Bảng~\ref{tab:imputation_strategy} (Phần~2).
-
-\subsubsection*{4.1. Lọc bỏ quan sát không hợp lệ}
-
-\begin{minted}{R}
-df_clean <- df %>%
-  filter(!is.na(release_price)) %>%        # Giữ dòng có giá (biến Y)
-  filter(manufacturer != "Intel") %>%       # Loại Intel (không có giá)
-  filter(release_price <= price_upper)      # Loại outliers
-\end{minted}
-
-Kết quả: Loại bỏ 2.846 dòng thiếu \texttt{release\_price} và 33 Outliers có giá $> \$814$ (ngưỡng Tukey từ Bước~\ref{sec:buoc_3_ngoai_lai}). Tập phân tích còn \textbf{523 quan sát}.
-
-\subsubsection*{4.2. Điền khuyết theo vai trò biến}
-
-\begin{minted}{R}
-df_clean <- df_clean %>%
-  mutate(
-    # Biến số liên tục: điền Median
-    tdp = ifelse(is.na(tdp), median(tdp, na.rm = TRUE), tdp),
-    core_speed = ifelse(is.na(core_speed),
-                        median(core_speed, na.rm = TRUE), core_speed),
-    release_year = ifelse(is.na(release_year),
-                          median(release_year, na.rm = TRUE), release_year),
-    # Biến số rời rạc: điền Mode
-    memory_size = ifelse(is.na(memory_size),
-                         get_mode(memory_size), memory_size),
-    memory_bus  = ifelse(is.na(memory_bus),
-                         get_mode(memory_bus),  memory_bus),
-    # Biến phân loại: điền Mode
-    memory_type  = ifelse(is.na(memory_type) | memory_type == "",
-                          get_mode(memory_type), memory_type),
-    manufacturer = ifelse(is.na(manufacturer) | manufacturer == "",
-                          get_mode(manufacturer), manufacturer)
-  )
-\end{minted}
-
-Số lượng NA được điền trên 523 quan sát theo chiến lược Bảng~\ref{tab:imputation_strategy} (Biến \texttt{tdp} được đổi tên từ \texttt{Max\_Power}).
-
-Sau quy trình, \texttt{colSums(is.na(df\_clean))} xác nhận toàn bộ 8 biến đều có 0~NA. Bộ dữ liệu đã hoàn toàn sạch, sẵn sàng cho bước mã hóa và chuẩn hóa.
-
-\subsection{Bước 5: Mã hóa biến phân loại}
-\label{sec:buoc_5_ma_hoa}
-
-
-\begin{minted}{R}
-df_clean <- df_clean %>%
-  mutate(
-    manufacturer = as.factor(manufacturer),
-    memory_type = as.factor(memory_type)
-  )
-\end{minted}
-
-\textbf{as.factor()}: Hàm này chuyển đổi một cột dạng văn bản (character) thành dạng Yếu tố (Factor).
-
-Biến định danh như nhà sản xuất và loại bộ nhớ đã được chuyển sang dạng Factor (\texttt{manufacturer}: 2 levels; \texttt{memory\_type}: 6 levels), giúp mô hình hồi quy có thể định lượng hóa tác động của thương hiệu đến giá phát hành.
-
-\subsection{Bước 6: Chuẩn hóa dữ liệu (z-score normalization) \& Tương quan Pearson}
-\label{sec:buoc_6_chuan_hoa}
-
-
-\begin{minted}{R}
-df_final <- df_clean %>%
-  mutate(
-    tdp = scale(tdp)[,1],
-    core_speed = scale(core_speed)[,1],
-    memory_size = scale(memory_size)[,1],
-    memory_bus = scale(memory_bus)[,1]
-  )
-\end{minted}
-
-Hàm \texttt{scale} mặc định trả về một ma trận, thêm \texttt{[,1]} để ép nó về dạng cột (vector). Kết quả kiểm tra: Mean $= 0$ và SD $= 1$ cho cả 4 biến, xác nhận chuẩn hóa thành công.
-
-Sau khi dữ liệu đã sạch và chuẩn hóa, nhóm tính thống kê mô tả cho biến phụ thuộc và ma trận tương quan để xác nhận chiều quan hệ giữa các biến trước khi đưa vào mô hình:
-
-\begin{minted}{R}
-# Thống kê mô tả giá GPU (trên giá gốc, trước log-transform)
-summary(df_final$release_price)
-sd(df_final$release_price)
-
-# Ma trận tương quan Pearson (biến số liên tục)
-num_vars <- df_final[, c("release_price", "tdp", "memory_size",
-                          "memory_bus", "core_speed", "release_year")]
-cor_matrix <- cor(num_vars, use = "complete.obs")
-print(round(cor_matrix, 2))
-\end{minted}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.78\textwidth]{figures/correlation_matrix.png}
-    \caption{Ma trận tương quan Pearson giữa các biến số được chọn ($N = 523$). Sắc đỏ: tương quan dương; sắc xanh: tương quan âm; cường độ màu tỉ lệ với $|r|$.}
-    \label{fig:cor_matrix}
-\end{figure}
-
-\begin{sloppypar}
-\textbf{Nhận xét:} \texttt{tdp} có tương quan dương mạnh nhất với giá ($r = 0{,}50$); \texttt{memory\_size} ở mức trung bình ($r = 0{,}34$); \texttt{memory\_bus} có tương quan biên ($r = 0{,}14$) nhưng vẫn đóng vai trò bổ sung trong cấu trúc đa biến. Cặp \texttt{core\_speed}--\texttt{release\_year} tương quan khá cao ($r = 0{,}66$) --- tín hiệu cần kiểm định VIF (Bước~\ref{sec:buoc_7_xay_dung_mo_hinh}). Hai biến phân loại (\texttt{manufacturer}, \texttt{memory\_type}) được khảo sát riêng qua ANOVA và VIF cho biến giả.
-\end{sloppypar}
-
-\subsection{Bước 7: Xây dựng mô hình thống kê}
-\label{sec:buoc_7_xay_dung_mo_hinh}
-
-\subsubsection{7.1. Mô hình hồi quy tuyến tính bội}
-
-
-\textbf{7.1.1 Kiểm định đa cộng tuyến (VIF)}
-
-Nhóm xây mô hình đầy đủ với toàn bộ 7 biến, sau đó gọi \texttt{vif()} từ gói \texttt{car} để tính chỉ số VIF cho từng biến độc lập:
-
-\begin{minted}{R}
-mlr_model_initial <- lm(release_price ~ tdp + memory_size + memory_bus +
-                            core_speed + manufacturer + memory_type + release_year, data = df_final)
-
-#   Sử dụng chuẩn VIF < 5 thay vì VIF < 10 theo đúng lý thuyết
-vif_initial <- vif(mlr_model_initial)
-print(vif_initial)
-\end{minted}
-
-Kết quả kiểm định:
-
+Kết quả hiển thị:
 \begin{rconsole}
-> print(vif_initial)
-                  GVIF Df GVIF^(1/(2*Df))
-tdp          2.173073  1        1.474135
-memory_size  3.060343  1        1.749383
-memory_bus   2.737904  1        1.654661
-core_speed   3.869659  1        1.967145
-manufacturer 1.795841  1        1.340090
-memory_type  6.583356  5        1.207382
-release_year 3.933548  1        1.983317
+Q1=150, Q3=349, IQR=199, Ngưỡng trên=647.50
+=> Phát hiện 52 quan sát là ngoại lai (Giá > 647.50)
+=> Đã loại bỏ ngoại lai. Dữ liệu còn lại: 446 quan sát
 \end{rconsole}
 
-\begin{sloppypar}
-Do \texttt{memory\_type} là biến phân loại nhiều mức (6 levels), hàm \texttt{vif()} của gói \texttt{car} trả về \textbf{GVIF} (\textit{Generalized VIF}) thay vì VIF thông thường. Cột \texttt{GVIF\^(1/(2*Df))} chuẩn hóa GVIF về thang so sánh tương đương VIF đơn biến (bằng cách lấy căn bậc $2 \times Df$). Kết quả cho thấy \texttt{memory\_type} có $\text{GVIF} = 6{,}58 > 5$, vượt ngưỡng cho phép, trong khi 6 biến còn lại đều dưới ngưỡng an toàn. Do đó, nhóm loại \texttt{memory\_type} và xây lại mô hình cơ sở.
-\end{sloppypar}
+\subsection{Bước 4: Chia tập dữ liệu Train/Test (90:10)}
+\label{sec:buoc_4}
+\texttt{set.seed(2026252)} đảm bảo tái lập kết quả; \texttt{sample()} sinh chỉ số Train, phân tách bằng index dương/âm (\texttt{[train\_indices, ]} và \texttt{[-train\_indices, ]}) trực tiếp trên dataframe:
+\begin{minted}{R}
+set.seed(2026252)
+train_indices <- sample(1:nrow(clean_data), size = 0.9 * nrow(clean_data))
+train_data <- clean_data[train_indices, ]
+test_data <- clean_data[-train_indices, ]
+\end{minted}
+Kết quả chia tập dữ liệu: Train ($N = 401$), Test ($N = 45$). Index âm \texttt{[-train\_indices, ]} loại trừ các dòng đã chọn, tạo tập Test không chồng lấp mà không cần hàm phụ trợ.
 
-\textbf{7.1.2 Mô hình cơ sở (Y gốc) và xác nhận VIF}
-
-Sau khi loại \texttt{memory\_type}, nhóm xây mô hình cơ sở với biến phụ thuộc là giá gốc ($N = 523$) và xác nhận lại VIF:
+\subsection{Bước 5: Điền khuyết trên Train (Regex, Mode, Median)}
+\label{sec:buoc_5}
+Hai tầng: \texttt{extract\_vram()} regex với word-boundary \texttt{{\textbackslash}b} tránh match số trong mã sản phẩm, đổi đơn vị GB~$\to$~MB; \texttt{apply\_imputation()} dùng \texttt{replace()} thay vì \texttt{ifelse()} để xử lý đúng \texttt{NA} trên cột Factor; tham số fit từ Train, áp đồng nhất cho cả hai tập:
 
 \begin{minted}{R}
-mlr_model_base <- lm(release_price ~ tdp + memory_size + memory_bus +
-                       core_speed + manufacturer + release_year, data = df_final)
-print(vif(mlr_model_base))
+# 1. Trích xuất VRAM bằng Regex
+extract_vram <- function(df) {
+  df %>% mutate(
+    mem_str = str_extract(Name, regex("\\b(\\d+)\\s*(GB|G|MB)\\b", ignore_case = TRUE)),
+    mem_val = as.numeric(str_extract(mem_str, "\\d+")),
+    mem_val = ifelse(str_detect(mem_str, regex("GB|G\\b", ignore_case = TRUE)), mem_val * 1024, mem_val),
+    Memory = ifelse(is.na(Memory) & !is.na(mem_val), mem_val, Memory)
+  ) %>% select(-mem_str, -mem_val)
+}
+train_data <- extract_vram(train_data); test_data <- extract_vram(test_data)
+
+# 2. Điền Mode/Median tính từ tập Train
+get_mode <- function(v) {
+  uniqv <- unique(na.omit(v)); uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+impute_params <- list(
+  Memory = get_mode(train_data$Memory),
+  Memory_Type = get_mode(train_data$Memory_Type),
+  Manufacturer = get_mode(train_data$Manufacturer),
+  Core_Speed = median(train_data$Core_Speed, na.rm = TRUE),
+  Release_Year = median(train_data$Release_Year, na.rm = TRUE),
+  Max_Power = median(train_data$Max_Power, na.rm = TRUE),
+  Memory_Bandwidth = median(train_data$Memory_Bandwidth, na.rm = TRUE)
+)
+
+apply_imputation <- function(df, params) {
+  df %>% mutate(
+    Memory = replace(Memory, is.na(Memory), params$Memory),
+    Memory_Type = replace(Memory_Type, is.na(Memory_Type), params$Memory_Type),
+    Manufacturer = replace(Manufacturer, is.na(Manufacturer), params$Manufacturer),
+    Core_Speed = replace(Core_Speed, is.na(Core_Speed), params$Core_Speed),
+    Release_Year = replace(Release_Year, is.na(Release_Year), params$Release_Year),
+    Max_Power = replace(Max_Power, is.na(Max_Power), params$Max_Power),
+    Memory_Bandwidth = replace(Memory_Bandwidth, is.na(Memory_Bandwidth), params$Memory_Bandwidth)
+  )
+}
+train_data <- apply_imputation(train_data, impute_params)
+test_data <- apply_imputation(test_data, impute_params)
 \end{minted}
 
-Tất cả 6 biến còn lại đều có $\text{VIF} < 5$, không còn đa cộng tuyến. Mô hình cơ sở sẵn sàng cho bước phân tích phần dư.
-
-\textbf{7.1.3 Lọc ngoại lai cấu trúc từ phần dư mô hình cơ sở}
-
-Phần dư chuẩn hóa của mô hình cơ sở được dùng để xác định các quan sát bất thường. Nhóm kết hợp ngưỡng thống kê $|\text{std.residual}| > 2{,}0$ với kiến thức miền (tên GPU) để lọc đúng các ngoại lai \textit{cấu trúc} --- những sản phẩm mà sai số lớn xuất phát từ cơ chế định giá dị biệt, không phải nhiễu ngẫu nhiên:
-
+\subsection{Bước 6: Biến đổi Logarit \texttt{Memory\_Bandwidth}}
+\label{sec:buoc_6}
+\texttt{mutate()} thêm cột \texttt{log\_Memory\_Bandwidth} mới, giữ nguyên cột gốc để dùng khi tiền xử lý GPU mới ở Bước 11:
 \begin{minted}{R}
-std_res_base <- rstandard(mlr_model_base)
-outlier_mask <- abs(std_res_base) > 2.0 &
-  grepl("(?i)Quadro|Crossfire|Dual[ .]Core|Hydro[ .]Copper|Hybrid|not[ .]released",
-        df_final$name, perl = TRUE)
-
-df_final_clean <- df_final[!outlier_mask, ]
-N_final <- nrow(df_final_clean)
-cat(sprintf("Loại %d ngoại lai cấu trúc => N = %d\n",
-            sum(outlier_mask), N_final))
+train_data <- train_data %>% mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
+test_data <- test_data %>% mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
 \end{minted}
 
+\subsection{Bước 7: Xây dựng \& so sánh MLR cơ bản vs Log-Linear}
+\label{sec:buoc_7}
+\begin{minted}{R}
+mlr_model_linear <- lm(Release_Price ~ Max_Power + Memory + Memory_Bandwidth +
+  Core_Speed + Manufacturer + Memory_Type + Release_Year, data = train_data)
+
+mlr_model_log <- lm(log(Release_Price) ~ Max_Power + Memory + log_Memory_Bandwidth +
+  Core_Speed + Manufacturer + Memory_Type + Release_Year, data = train_data)
+\end{minted}
+
+\texttt{car::vif()} trả về GVIF cho biến phân loại đa mức; cột GVIF\textsuperscript{1/(2*Df)} cần bình phương thành GVIF\textsuperscript{1/Df} trước khi so sánh với ngưỡng VIF < 10 (Ngoài ra còn có thể kiểm tra GVIF\textsuperscript{1/(2*Df)} $< \sqrt{10} \approx 3{,}16$):
 \begin{rconsole}
-> cat(sprintf(...))
-Loại 9 ngoại lai cấu trúc => N = 514
+                         GVIF Df GVIF^(1/(2*Df))
+Max_Power            3.966452  1        1.991595
+Memory               3.170213  1        1.780509
+log_Memory_Bandwidth 7.344293  1        2.710036
+Core_Speed           3.636046  1        1.906842
+Manufacturer         1.969685  1        1.403455
+Memory_Type          4.062567  5        1.150483
+Release_Year         4.527804  1        2.127864
+\end{rconsole}
+Giá trị VIF cao nhất: \texttt{log\_Memory\_Bandwidth} $= 2{,}71^2 \approx 7{,}34$. Tất cả giá trị sau bình phương $< 10$, mô hình giữ nguyên toàn bộ biến.
+
+\subsection{Bước 8: Kiểm định thống kê (ANOVA, BP, Shapiro-Wilk)}
+\label{sec:buoc_8}
+\texttt{oneway.test(var.equal=FALSE)}, \texttt{lmtest::bptest()} và \texttt{shapiro.test(residuals())} gọi trực tiếp trên đối tượng \texttt{mlr\_model\_log}:
+
+\textbf{Kiểm định Welch's ANOVA (Giá $\sim$ Hãng sản xuất)}
+\begin{rconsole}
+	One-way analysis of means (not assuming equal variances)
+data:  Release_Price and Manufacturer
+F = 31.67, num df = 1.00, denom df = 320.65, p-value = 3.988e-08
+AMD: n=219, mean=206.95, median=199.00, sd=100.30
+NVIDIA: n=182, mean=276.56, median=246.22, sd=139.58
 \end{rconsole}
 
-9 GPU bị loại bỏ gồm: các card Crossfire/Dual-Core (thông số bị cộng dồn gấp đôi), Quadro lọt lưới bộ lọc IQR ban đầu, card tản nhiệt nước Hydro Copper và Hybrid (premium cao cấp), và sản phẩm chưa phát hành. Tập dữ liệu chính thức: $\boldsymbol{N = 514}$.
+\textbf{Kiểm định Breusch-Pagan \& Shapiro-Wilk}
+\begin{rconsole}
+	studentized Breusch-Pagan test
+data:  mlr_model_log
+BP = 14.707, df = 11, p-value = 0.1963
 
-\textbf{7.1.4 Mô hình Log-Linear chính thức ($N = 514$)}
+	Shapiro-Wilk normality test
+data:  residuals(mlr_model_log)
+W = 0.96405, p-value = 2.376e-08
+\end{rconsole}
+Skewness tính thủ công theo công thức sample skewness $\frac{n}{(n-1)(n-2)}\sum\!\left(\frac{x_i - \bar{x}}{s}\right)^{\!3}$; kết quả $= 1{,}1218$.
 
+\subsection{Bước 9: Đánh giá mô hình trên tập Test ngoài mẫu}
+\label{sec:buoc_9}
+Hàm \texttt{evaluate\_model\_on\_test()} nhận flag \texttt{is\_log\_model} để \texttt{exp()} kết quả trước khi tính sai số; $R^2$ ngoài mẫu tính thủ công $1 - \text{SSR}/\text{SST}$ trên tập Test:
+\begin{rconsole}
+--- Đánh giá Mô hình MLR Cơ bản (Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 45 / 45
+RMSE (Root Mean Squared Error): 62.18 $
+MAE (Mean Absolute Error):      45.76 $
+R-squared (Out-of-sample):      0.7454
+
+--- Đánh giá Mô hình MLR Nâng cao (Log-Linear) trên Tập Test ---
+Số mẫu dự đoán hợp lệ: 45 / 45
+RMSE (Root Mean Squared Error): 51.92 $
+MAE (Mean Absolute Error):      33.50 $
+R-squared (Out-of-sample):      0.8225
+\end{rconsole}
+Kết quả xác nhận mô hình Log-Linear có chất lượng dự đoán xuất sắc hơn đáng kể so với MLR cơ bản.
+
+\subsection{Bước 10: Chuẩn hóa Z-Score \& Phân tích Feature Importance}
+\label{sec:buoc_10}
+\texttt{scale\_params} lưu mean/sd từ Train; \texttt{apply\_scaling()} tính Z-score thủ công thay vì \texttt{scale()} để kiểm soát tham số khi áp dụng cho dữ liệu ngoài mẫu:
 \begin{minted}{R}
-log_model_final <- lm(log(release_price) ~ tdp + memory_size + memory_bus +
-                        core_speed + manufacturer + release_year,
-                      data = df_final_clean)
-summary(log_model_final)
+scale_params <- list(
+  Max_Power = list(mean = mean(train_data$Max_Power, na.rm = TRUE),
+                   sd = sd(train_data$Max_Power, na.rm = TRUE)),
+  Memory = list(mean = mean(train_data$Memory, na.rm = TRUE),
+                sd = sd(train_data$Memory, na.rm = TRUE)),
+  log_Memory_Bandwidth = list(mean = mean(train_data$log_Memory_Bandwidth, na.rm = TRUE),
+                              sd = sd(train_data$log_Memory_Bandwidth, na.rm = TRUE)),
+  Core_Speed = list(mean = mean(train_data$Core_Speed, na.rm = TRUE),
+                    sd = sd(train_data$Core_Speed, na.rm = TRUE)),
+  Release_Year = list(mean = mean(train_data$Release_Year, na.rm = TRUE),
+                      sd = sd(train_data$Release_Year, na.rm = TRUE))
+)
+train_data_scaled <- apply_scaling(train_data, scale_params)
+mlr_model_scaled <- lm(log(Release_Price) ~ Max_Power + Memory + log_Memory_Bandwidth +
+  Core_Speed + Manufacturer + Memory_Type + Release_Year, data = train_data_scaled)
 \end{minted}
+Kết quả hệ số hồi quy nổi bật:
+\begin{rconsole}
+                     Estimate Std. Error t value Pr(>|t|)    
+Max_Power             0.13727    0.01885   7.284 1.81e-12 ***
+Memory               -0.01396    0.01685  -0.828 0.407950    
+log_Memory_Bandwidth  0.39986    0.02564  15.593  < 2e-16 ***
+Core_Speed            0.16806    0.01804   9.314  < 2e-16 ***
+ManufacturerNvidia    0.20973    0.02664   7.872 3.50e-14 ***
+Release_Year         -0.22083    0.02013 -10.968  < 2e-16 ***
+\end{rconsole}
 
-Tất cả 6 biến đều có ý nghĩa thống kê ($p < 0{,}001$) với $R^2 = 81{,}89\%$. Bảng hệ số chi tiết được trình bày tại Phần~4.
+\subsection{Bước 11: Dự báo giá GPU mới (Validation in-the-wild)}
+\label{sec:buoc_11}
+\texttt{Memory\_Type} GDDR6 ánh xạ thủ công sang \texttt{GDDR5X} vì mô hình chưa thấy level này lúc huấn luyện; \texttt{exp(predict(mlr\_model\_log))} khôi phục đơn vị USD; sai số tính theo \% lệch so với giá thực (GTX 1660, RX 590, RTX 3060):
+\begin{rconsole}
+               GPU ThucTe        Linear    LogLinear
+1 GeForce GTX 1660   219$ 250$ (+14.2%)  234$ (+6.8%)
+2    Radeon RX 590   279$  306$ (+9.5%) 275$ (-1.4%)
+3 GeForce RTX 3060   329$ 413$ (+25.5%) 315$ (-4.4%)
+\end{rconsole}
 
-\textbf{7.1.5 Kiểm định giả định trên mô hình Log-Linear}
-
-\begin{minted}{R}
-print(vif(log_model_final))
-print(bptest(log_model_final))
-print(shapiro.test(residuals(log_model_final)))
-\end{minted}
-
-\begin{sloppypar}
-\textbf{VIF}: Tất cả biến $< 3{,}5$ (cao nhất: \texttt{core\_speed} $= 3{,}35$), không có đa cộng tuyến.
-
-\textbf{Breusch-Pagan}: $BP = 35{,}48$. Cải thiện đáng kể so với mô hình cơ sở trên $N = 523$.
-
-\textbf{Shapiro-Wilk}: $W = 0{,}982$. Phần dư xấp xỉ chuẩn xuất sắc; diễn giải chi tiết tại Phần~4.
-\end{sloppypar}
-
-Giá dự đoán được khôi phục về đơn vị USD bằng \texttt{exp(predict(log\_model\_final))} và so sánh trực quan với giá thực tế qua Hình~\ref{fig:scatter_pred} (Phần~4).
-
-
-
-\subsubsection{7.2. Phân tích phương sai}
-
-\begin{minted}{R}
-# Welch's ANOVA (var.equal = FALSE để xử lý phương sai không đồng nhất)
-anova_result <- oneway.test(release_price ~ manufacturer,
-                            data = df_final_clean, var.equal = FALSE)
-print(anova_result)
-\end{minted}
-
-\textbf{oneway.test(..., var.equal = FALSE)} thực hiện Welch's ANOVA --- phiên bản bền vững khi phương sai không đồng nhất. Kết quả chi tiết được trình bày tại Phần~4.
-
+\subsection{Bước 12: Trực quan hóa kết quả}
+\label{sec:buoc_12}
+Base R graphics: \texttt{image()} vẽ heatmap tương quan với \texttt{colorRampPalette()}, \texttt{lowess()} overlay smoother lên residual plot, \texttt{barplot(horiz=TRUE)} cho coefficient importance; tất cả xuất PNG 200--300\,dpi vào \texttt{figures/}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -8,7 +8,7 @@
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/price_distribution_compare.png}
-    \caption{Phân phối giá GPU gốc (trái) và phân phối sau khi biến đổi logarit (phải) ($N = 514$).}
+    \caption{Phân phối giá GPU gốc (trái) và phân phối sau khi biến đổi logarit (phải) ($N = 446$, sau khi loại bỏ ngoại lai).}
     \label{fig:price_dist}
 \end{figure}
 
@@ -19,7 +19,7 @@ Thông qua phép biến đổi logarit tự nhiên (phải), phân phối của 
 \setlength\LTleft{\fill}
 \setlength\LTright{\fill}
 \begin{longtable}{|l|r|r|r|r|}
-    \caption{Kết quả kiểm định so sánh giá GPU giữa hai hãng ($N = 514$, Consumer/Prosumer)}
+    \caption{Kết quả kiểm định so sánh giá GPU giữa hai hãng ($N = 401$, tập Train)}
     \label{tab:anova_result} \\
     \hline
     \textbf{Hãng} & \textbf{n} & \textbf{Mean (USD)} & \textbf{Median (USD)} & \textbf{SD (USD)} \\
@@ -31,16 +31,16 @@ Thông qua phép biến đổi logarit tự nhiên (phải), phân phối của 
     \endhead
     \hline
     \endlastfoot
-    AMD & 261 & \$214,57 & \$200,00 & \$111,24 \\
-    NVIDIA & 253 & \$346,72 & \$299,00 & \$197,96 \\
+    AMD & 219 & \$206,95 & \$199,00 & \$100,30 \\
+    NVIDIA & 182 & \$276,56 & \$246,22 & \$139,58 \\
     \hline
-    \multicolumn{5}{|l|}{\textbf{Welch's ANOVA:} $F = 86{,}331$, $df_1 = 1$, $df_2 = 394{,}09$, $p < 2{,}2 \times 10^{-16}$ ***} \\
+    \multicolumn{5}{|l|}{\textbf{Welch's ANOVA:} $F = 31{,}67$, $df_1 = 1$, $df_2 = 320{,}65$, $p = 3{,}988 \times 10^{-8}$ ***} \\
     \hline
 \end{longtable}
 
-Phân tích dữ liệu thống kê từ Bảng~\ref{tab:anova_result} cho thấy hai đặc điểm nổi bật: (i)~phân phối giá NVIDIA trải rộng hơn AMD đáng kể (SD $= \$197{,}96$ vs. $\$111{,}24$), và (ii)~trung vị giá NVIDIA ($\$299$) cao hơn AMD ($\$200$) khoảng 50\%. Do phương sai hai nhóm không đồng nhất rõ rệt (thể hiện qua chênh lệch SD), nhóm sử dụng kiểm định Welch's ANOVA để đảm bảo kết quả so sánh là chính xác.
+Phân tích dữ liệu thống kê từ Bảng~\ref{tab:anova_result} cho thấy hai đặc điểm nổi bật: (i)~phân phối giá NVIDIA trải rộng hơn AMD (SD $= \$139{,}58$ vs. $\$100{,}30$), và (ii)~trung vị giá NVIDIA ($\$246{,}22$) cao hơn AMD ($\$199{,}00$). Do phương sai hai nhóm không đồng nhất rõ rệt (thể hiện qua chênh lệch SD), nhóm sử dụng kiểm định Welch's ANOVA để đảm bảo kết quả so sánh là chính xác.
 
-\textbf{Kết luận:} Kết quả Welch's ANOVA ($F = 86{,}331$, $p < 2{,}2 \times 10^{-16}$) bác bỏ $H_0$: $\mu_{\mathrm{NVIDIA}} = \mu_{\mathrm{AMD}}$ tại mức $\alpha = 0{,}05$, nghĩa là NVIDIA có giá trung bình cao hơn AMD \textbf{\$132,15} một cách có ý nghĩa thống kê trong phân khúc Consumer/Prosumer. Vì chỉ có 2 nhóm, kết quả tương đương Welch's T-test và không cần hậu kiểm.
+\textbf{Kết luận:} Kết quả Welch's ANOVA ($F = 31{,}67$, $p < 0{,}001$) bác bỏ $H_0$: $\mu_{\mathrm{NVIDIA}} = \mu_{\mathrm{AMD}}$ tại mức $\alpha = 0{,}05$, nghĩa là NVIDIA có giá trung bình cao hơn AMD \textbf{\$69,61} một cách có ý nghĩa thống kê trong dải sản phẩm được phân tích.
 
 \subsection{Yếu tố nào quyết định giá GPU?}
 
@@ -49,7 +49,7 @@ Phân tích dữ liệu thống kê từ Bảng~\ref{tab:anova_result} cho thấ
 \setlength\LTleft{\fill}
 \setlength\LTright{\fill}
 \begin{longtable}{|l|r|r|r|r|l|}
-\caption{Hệ số hồi quy mô hình Log-Linear chính thức ($N = 514$, Adjusted $R^2 = 81{,}68\%$)}
+\caption{Hệ số hồi quy mô hình Log-Linear chính thức ($N = 401$, Adjusted $R^2 = 86{,}62\%$)}
 \label{tab:log_coef} \\
 \hline
 \textbf{Biến} & \textbf{$\hat{\beta}$} & \textbf{Std. Error} & \textbf{t value} & \textbf{p-value} & \textbf{Sig.} \\
@@ -61,99 +61,111 @@ Phân tích dữ liệu thống kê từ Bảng~\ref{tab:anova_result} cho thấ
 \endhead
 \hline
 \endlastfoot
-(Intercept) & 87,471 & 18,072 & 4,840 & $1{,}7 \times 10^{-6}$ & *** \\
-TDP & 0,4434 & 0,01608 & 27,570 & $< 2 \times 10^{-16}$ & *** \\
-Dung lượng RAM & 0,1178 & 0,01892 & 6,230 & $9{,}8 \times 10^{-10}$ & *** \\
-Băng thông Bus & 0,05670 & 0,01188 & 4,774 & $2{,}4 \times 10^{-6}$ & *** \\
-Xung nhịp lõi & 0,1698 & 0,02066 & 8,219 & $1{,}7 \times 10^{-15}$ & *** \\
-Hãng NVIDIA & 0,2784 & 0,02980 & 9,342 & $< 2 \times 10^{-16}$ & *** \\
-Năm phát hành & $-0{,}04077$ & 0,00897 & $-4{,}547$ & $6{,}8 \times 10^{-6}$ & *** \\
+(Intercept) & 5,7167 & 0,0802 & 71,318 & $< 2 \times 10^{-16}$ & *** \\
+Công suất (Max Power) & 0,1373 & 0,0189 & 7,284 & $1{,}8 \times 10^{-12}$ & *** \\
+Dung lượng RAM & $-0{,}0140$ & 0,0169 & $-0{,}828$ & $0{,}4080$ & \\
+Log(Băng thông bộ nhớ) & 0,3999 & 0,0256 & 15,593 & $< 2 \times 10^{-16}$ & *** \\
+Xung nhịp lõi & 0,1681 & 0,0180 & 9,314 & $< 2 \times 10^{-16}$ & *** \\
+Hãng NVIDIA & 0,2097 & 0,0266 & 7,872 & $3{,}5 \times 10^{-14}$ & *** \\
+RAM: GDDR3 & $-0{,}3739$ & 0,0863 & $-4{,}334$ & $1{,}9 \times 10^{-5}$ & *** \\
+RAM: GDDR5 & $-0{,}4904$ & 0,0796 & $-6{,}159$ & $1{,}8 \times 10^{-9}$ & *** \\
+RAM: GDDR5X & $-0{,}3664$ & 0,2096 & $-1{,}748$ & $0{,}0813$ & . \\
+RAM: HBM-1 & $-0{,}5975$ & 0,1683 & $-3{,}550$ & $0{,}0004$ & *** \\
+RAM: HBM-2 & 0,0628 & 0,1362 & 0,461 & $0{,}6451$ & \\
+Năm phát hành & $-0{,}2208$ & 0,0201 & $-10{,}968$ & $< 2 \times 10^{-16}$ & *** \\
 \hline
-\multicolumn{6}{|l|}{$R^2 = 0{,}8189$ \quad Adjusted $R^2 = 0{,}8168$ \quad $F(6, 507) = 382{,}2$ \quad $p < 2{,}2 \times 10^{-16}$} \\
+\multicolumn{6}{|l|}{$R^2 = 0{,}8699$ \quad Adjusted $R^2 = 0{,}8662$ \quad $F(11, 389) = 236{,}4$ \quad $p < 2{,}2 \times 10^{-16}$} \\
 \hline
 \end{longtable}
 
-Mô hình giải thích \textbf{81,89\%} phương sai log-giá (vượt mức $75\%$ trước khi lọc ngoại lai cấu trúc), và \textbf{tất cả 6 biến đều có ý nghĩa} ($p < 0{,}001$). Phương trình hồi quy cuối cùng:
+Mô hình giải thích \textbf{86,99\%} phương sai log-giá (mức rất cao đối với dữ liệu cắt ngang). Hầu hết các biến quan trọng đều có ý nghĩa thống kê cao ($p < 0{,}001$), đáng chú ý là \textbf{Dung lượng RAM không còn ý nghĩa thống kê} sau khi đã kiểm soát Băng thông bộ nhớ và Loại RAM. Phương trình hồi quy đầy đủ:
 
 \begin{align*}
-\log(\widehat{\text{release\_price}}) &= 87{,}47 + 0{,}443 \cdot \text{tdp} + 0{,}118 \cdot \text{memory\_size} + 0{,}057 \cdot \text{memory\_bus} \\
-&\quad + 0{,}170 \cdot \text{core\_speed} + 0{,}278 \cdot \text{manufacturer}_{\text{Nvidia}} - 0{,}041 \cdot \text{release\_year}
+\log(\widehat{\text{Price}}) &= 5{,}717 + 0{,}137 \cdot \text{max\_power} - 0{,}014 \cdot \text{memory} + 0{,}400 \cdot \log(\text{memory\_bw}) \\
+&\quad + 0{,}168 \cdot \text{core\_speed} + 0{,}210 \cdot \text{mfg}_{\text{Nvidia}} - 0{,}221 \cdot \text{release\_year} \\
+&\quad - 0{,}374 \cdot \text{GDDR3} - 0{,}490 \cdot \text{GDDR5} - 0{,}366 \cdot \text{GDDR5X} \\
+&\quad - 0{,}597 \cdot \text{HBM-1} + 0{,}063 \cdot \text{HBM-2}
 \end{align*}
 
 \subsubsection{Tầm quan trọng tương đối của các biến}
 
-Vì các biến số đã được chuẩn hóa Z-score, độ lớn hệ số $\hat{\beta}$ phản ánh trực tiếp tầm quan trọng tương đối. Hình~\ref{fig:coef_importance} trực quan hóa tác động phần trăm lên giá GPU khi mỗi biến tăng 1 đơn vị (biến số tăng 1~SD, biến giả chuyển 1 nhóm):
+Vì các biến số học đã được chuẩn hóa Z-score, độ lớn hệ số $\hat{\beta}$ phản ánh trực tiếp tầm quan trọng tương đối. Hình~\ref{fig:coef_importance} trực quan hóa tác động phần trăm lên giá GPU.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.88\textwidth]{figures/coefficient_importance.png}
-    \caption{Tác động phần trăm của từng biến lên giá GPU, tính theo công thức $(e^{\hat{\beta}} - 1) \times 100\%$.}
+    \caption{Tác động phần trăm của từng biến lên giá GPU.}
     \label{fig:coef_importance}
 \end{figure}
 
-% \textbf{Diễn giải theo ngữ cảnh thị trường GPU (Consumer/Prosumer):}
-% \begin{itemize}
-%     \item \textbf{TDP (công suất)} là yếu tố quyết định mạnh nhất: tăng 1~SD $\to$ giá tăng $\approx 55{,}8\%$. GPU công suất cao phản ánh chip lớn hơn, nhiều nhân xử lý hơn --- chi phí sản xuất silicon cao hơn.
-%     \item \textbf{Thương hiệu NVIDIA} đắt hơn AMD $\approx 32{,}1\%$ cùng thông số ($e^{0{,}2784} - 1$) trong phân khúc Consumer --- đây là ``phí thương hiệu'' định lượng được qua hệ sinh thái CUDA và chiến lược định giá premium.
-%     \item \textbf{Xung nhịp lõi} ($+18{,}5\%$/SD) ảnh hưởng đáng kể --- trong phân khúc gaming, tốc độ xử lý là chỉ số được người mua ưu tiên.
-%     \item \textbf{Dung lượng RAM} ($+12{,}5\%$/SD) --- người mua sẵn sàng trả thêm cho VRAM lớn hơn.
-%     \item \textbf{Băng thông bus} ($+5{,}8\%$/SD) có tác động nhỏ nhất trong các biến kỹ thuật nhưng vẫn có ý nghĩa.
-%     \item \textbf{Năm phát hành} ($-4{,}0\%$/năm) phản ánh xu hướng giảm giá theo thời gian nhờ tiến bộ công nghệ bán dẫn (Moore's Law).
-% \end{itemize}
+Từ mô hình, ta thấy \textbf{Log Băng thông bộ nhớ} ($\beta = 0{,}3999$) có tác động mạnh nhất. Ngược lại, Dung lượng RAM đơn thuần không có ý nghĩa, phản ánh thực tế rằng khả năng truyền tải dữ liệu của VRAM quan trọng hơn dung lượng vật lý đối với việc định giá. Ngoài ra, xu hướng công nghệ tiến bộ làm giảm giá trị tương đối của các phần cứng theo thời gian, thể hiện qua hệ số năm phát hành là âm. Thương hiệu NVIDIA vẫn đóng vai trò là một "premium" so với AMD.
 
 \subsubsection{Khả năng dự đoán của mô hình}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.72\textwidth]{figures/scatter_actual_vs_predicted.png}
-    \caption{Scatter plot giá thực tế vs. giá dự đoán (đã chuyển về USD bằng $\exp$). Đường đỏ: tham chiếu lý tưởng $\hat{y} = y$.}
+    \caption{Scatter plot giá thực tế vs. giá dự đoán trên tập Test. Đường đỏ: tham chiếu lý tưởng $\hat{y} = y$.}
     \label{fig:scatter_pred}
 \end{figure}
 
-Hình~\ref{fig:scatter_pred} cho thấy phần lớn các điểm tập trung sát đường $\hat{y} = y$ trên toàn dải giá Consumer ($\$23$--$\$800$). Một số phân tán nhẹ ở vùng card gaming cao cấp ($> \$600$) là bình thường.
+Hình~\ref{fig:scatter_pred} cho thấy phần lớn các điểm tập trung sát đường $\hat{y} = y$ trên toàn dải giá. Một số phân tán nhẹ ở vùng card gaming cao cấp là bình thường.
 
-\textbf{Kiểm chứng dự đoán thực tế (Out-of-Sample Prediction):} Để minh chứng cho sức mạnh của mô hình, nhóm đã thử nghiệm dự đoán giá cho 5 mẫu GPU đời mới ra mắt sau năm 2017 (không hề tồn tại trong tập dữ liệu huấn luyện).
+\textbf{1. Đánh giá tổng thể trên tập kiểm thử (Test Set, N = 45):}
+Để đánh giá khách quan khả năng dự báo, mô hình được kiểm nghiệm trên tập Test bằng các chỉ số đo lường sai số phổ biến.
 
 \begin{table}[H]
 \centering
-\caption{Dự đoán giá trị thực tế (Out-of-Sample) cho GPU đời mới (2019-2021)}
+\caption{Đánh giá hiệu suất dự đoán trên tập Test ($N=45$)}
+\label{tab:test_metrics}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Mô hình} & \textbf{RMSE (USD)} & \textbf{MAE (USD)} & \textbf{Out-of-sample $R^2$} \\
+\hline
+OLS Cơ bản (Linear) & \$62,18 & \$45,76 & $0{,}7454$ \\
+Log-Linear & \textbf{\$51,92} & \textbf{\$33,50} & \textbf{$0{,}8225$} \\
+\hline
+\end{tabular}
+\end{table}
+
+Kết quả từ Bảng~\ref{tab:test_metrics} cho thấy mô hình Log-Linear vượt trội hoàn toàn so với mô hình OLS cơ bản. Chỉ số Out-of-sample $R^2$ đạt tới \textbf{82,25\%}, chứng tỏ mô hình không bị quá khớp (overfitting) và duy trì sức mạnh dự báo tuyệt vời trên dữ liệu mới. Trung bình, mô hình Log-Linear chỉ dự báo lệch khỏi giá thực tế khoảng $\$33{,}50$ (thể hiện qua MAE), giảm hơn $26\%$ sai số so với mô hình cơ bản.
+
+\textbf{2. Kiểm chứng dự đoán chi tiết 3 mẫu GPU:} Nhóm trích xuất cụ thể 3 mẫu GPU đời mới hơn năm 2017 (không nằm trong tập dữ liệu gốc) để kiểm tra bổ sung mô hình.
+
+\begin{table}[H]
+\centering
+\caption{Dự đoán giá trị thực tế cho 3 mẫu GPU hoàn toàn không nằm trong dữ liệu}
 \label{tab:out_of_sample}
-\resizebox{\textwidth}{!}{
-\begin{tabular}{|l|c|c|c|c|}
+\resizebox{0.8\textwidth}{!}{
+\begin{tabular}{|l|c|c|c|}
 \hline
-\textbf{Sản phẩm} & \textbf{Giá NY} & \textbf{Dự đoán OLS cơ bản} & \textbf{Dự đoán Log-Linear} & \textbf{KTC 95\% (Log-Linear)} \\
+\textbf{Sản phẩm} & \textbf{Giá thực tế} & \textbf{Dự đoán OLS Cơ bản} & \textbf{Dự đoán Log-Linear} \\
 \hline
-GTX 1650 (2019) & \$149,00 & \$218,29 (\textit{+47\%}) & \textbf{\$187,01} (\textit{+26\%}) & $[\$112,69 ; \$310,36]$ \\
-GTX 1660 (2019) & \$219,00 & \$331,09 (\textit{+51\%}) & \textbf{\$280,15} (\textit{+28\%}) & $[\$168,98 ; \$464,43]$ \\
-RX 5500 XT (2019) & \$199,00 & \$299,68 (\textit{+51\%}) & \textbf{\$257,65} (\textit{+29\%}) & $[\$155,35 ; \$427,31]$ \\
-RX 6600 XT (2021) & \$379,00 & \$390,27 (\textit{+3\%}) & \textbf{\$369,63} (\textit{-2\%}) & $[\$221,31 ; \$617,34]$ \\
-RTX 3060 (2021) & \$329,00 & \$424,73 (\textit{+29\%}) & \textbf{\$392,05} (\textit{+19\%}) & $[\$234,11 ; \$656,54]$ \\
+GTX 1660 & \$219,00 & \$250,00 (\textit{+14,2\%}) & \textbf{\$234,00} (\textit{+6,8\%}) \\
+RX 590 & \$279,00 & \$306,00 (\textit{+9,5\%}) & \textbf{\$275,00} (\textit{-1,4\%}) \\
+RTX 3060 & \$329,00 & \$413,00 (\textit{+25,5\%}) & \textbf{\$315,00} (\textit{-4,4\%}) \\
 \hline
 \end{tabular}
 }
 \end{table}
 
-\textbf{Nhận xét từ kết quả Out-of-Sample:}
-\begin{itemize}
-    \item \textbf{100\% độ bao phủ KTC:} Dù dự báo xa từ 2 đến 4 năm vào tương lai, giá niêm yết thực tế của \textit{toàn bộ 5 sản phẩm} đều rơi gọn gàng vào trong Khoảng tin cậy 95\% của mô hình Log-Linear. Điều này là minh chứng đanh thép cho tính vững chắc của phương trình.
-    \item \textbf{Sức mạnh của phép biến đổi Log-Linear:} Bảng~\ref{tab:out_of_sample} chứng minh sự ưu việt tuyệt đối của hàm Logarit. Mô hình tuyến tính OLS (dù đã được loại bỏ ngoại lai) vẫn dự báo sai lệch lố lên tới 47\%--51\% cho các phân khúc bình dân. Lý do là vì quy luật định giá thị trường không tuân theo đường thẳng tuyến tính, mà có độ cong tụ lại tại vùng giá rẻ. Phép biến đổi Log-Linear đã ``uốn cong'' đường dự đoán ép sát xuống quỹ đạo thực tế, giảm sai số đi một nửa.
-\end{itemize}
+\textbf{Nhận xét chi tiết:} Mô hình tuyến tính cơ bản dự báo lố từ 9,5\% đến 25,5\% ở các dòng card. Phép biến đổi Log-Linear đã "uốn cong" quỹ đạo dự đoán sát với thực tế hơn, đưa tỷ lệ sai số xuống dải từ 1,4\% đến 6,8\% đối với cả 3 mẫu thử, qua đó minh chứng tính ưu việt của mô hình Log-Linear.
 
 \subsubsection{Kiểm định giả định và chẩn đoán mô hình}
 
 Mô hình hồi quy OLS yêu cầu ba giả định chính: không đa cộng tuyến, phương sai sai số đồng nhất, và phần dư phân phối chuẩn.
 
-\textbf{1. Đa cộng tuyến (VIF):} Tất cả biến đều có VIF $< 3{,}5$ (cao nhất: \texttt{core\_speed} $= 3{,}35$). Kết quả này nằm trong ngưỡng an toàn rất cao (VIF $< 5$), xác nhận mô hình không gặp hiện tượng đa cộng tuyến.
+\textbf{1. Đa cộng tuyến (VIF):} Tất cả biến đều có $VIF < 8$ (cao nhất: \texttt{log\_Memory\_Bandwidth} $= 7{,}34$). Kết quả này nằm dưới ngưỡng an toàn 10, xác nhận mô hình không gặp hiện tượng đa cộng tuyến nghiêm trọng.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/diagnostic_residuals.png}
-    \caption{Biểu đồ chẩn đoán phần dư mô hình Log-Linear ($N=514$). Bên trái: phần dư vs. giá trị ước lượng (kiểm tra phương sai và tính tuyến tính). Bên phải: Q-Q plot (kiểm tra phân phối chuẩn).}
+    \caption{Biểu đồ chẩn đoán phần dư mô hình Log-Linear. Trái: phần dư vs. giá trị ước lượng. Phải: Q-Q plot.}
     \label{fig:diagnostic}
 \end{figure}
 
-\textbf{2. Tính tuyến tính và Phương sai đồng nhất (Homoscedasticity):} 
-Quan sát đồ thị bên trái của Hình~\ref{fig:diagnostic}, các điểm dữ liệu phân tán khá ngẫu nhiên quanh trục hoành ($y=0$). Đặc biệt, đường xu hướng trung bình (đường LOWESS màu đỏ) gần như là một đường thẳng nằm ngang trên hầu hết dải giá trị dự báo. Điều này minh chứng mạnh mẽ rằng phép biến đổi Logarit đã giải quyết thành công vấn đề phi tuyến tính và triệt tiêu được hiện tượng phương sai thay đổi. Kiểm định Breusch-Pagan cũng xác nhận chỉ số $\mathbf{BP = 35{,}48}$, củng cố tính vững chắc của mô hình.
+\textbf{2. Phương sai đồng nhất (Homoscedasticity):} 
+Quan sát đồ thị bên trái của Hình~\ref{fig:diagnostic}, các điểm dữ liệu phân tán ngẫu nhiên quanh trục hoành. Đường xu hướng (đỏ) nằm ngang xác nhận phép biến đổi Logarit đã triệt tiêu được hiện tượng phương sai thay đổi. \textbf{Kiểm định Breusch-Pagan xác nhận $\mathbf{BP = 14{,}707}$ với $\mathbf{p = 0{,}1963}$}. Do $p > 0{,}05$, ta không thể bác bỏ $H_0$, \textbf{mô hình chính thức vượt qua kiểm định phương sai đồng nhất}. Đây là một thành công lớn của việc tối ưu hóa dữ liệu.
 
 \begin{figure}[H]
     \centering
@@ -163,5 +175,5 @@ Quan sát đồ thị bên trái của Hình~\ref{fig:diagnostic}, các điểm 
 \end{figure}
 
 \textbf{3. Phân phối chuẩn phần dư (Normality):} 
-Về mặt trực quan, đồ thị Q-Q plot (Hình~\ref{fig:diagnostic}, phải) cho thấy phần lớn các điểm bám cực kỳ sát đường phân phối chuẩn lý tưởng (đường chéo), chỉ phân tán nhẹ ở hai vùng đuôi. Biểu đồ Histogram (Hình~\ref{fig:resid_hist}) cũng củng cố điều này với hình dáng quả chuông đối xứng. Về mặt toán học, kiểm định Shapiro-Wilk đạt mức $\mathbf{W = 0{,}982}$ (gần tiệm cận 1). Dù với cỡ mẫu lớn ($N=514$) khiến p-value nhạy cảm, nhưng sự kết hợp giữa các bằng chứng trực quan và Định lý Giới hạn Trung tâm (CLT) là quá đủ để bảo chứng rằng các suy diễn thống kê của mô hình là hoàn toàn đáng tin cậy.
+Về mặt trực quan, đồ thị Q-Q plot (Hình~\ref{fig:diagnostic}, phải) cho thấy phần lớn các điểm bám sát đường chuẩn. Histogram (Hình~\ref{fig:resid_hist}) có dáng quả chuông đối xứng. Về toán học, kiểm định Shapiro-Wilk đạt mức $\mathbf{W = 0{,}964}$. Dù p-value vẫn nhạy cảm với cỡ mẫu lớn ($N=401$), sự kết hợp giữa mức $W$ cao, bằng chứng trực quan và Định lý Giới hạn Trung tâm (CLT) đủ để bảo chứng rằng suy diễn thống kê của mô hình là hoàn toàn đáng tin cậy.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
