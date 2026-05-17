@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(\"C:\\\\Program Files\\\\R\\\\R-4.6.0\\\\bin\\\\Rscript.exe\" main.R)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(pdflatex -interaction=nonstopmode presentation.tex)",
+      "Bash(grep \"\\\\\\\\\\\\\\\\section{\" \"c:/Users/Triet/OneDrive - MSFT/Documents/latexdev/src/overview.tex\" \"c:/Users/Triet/OneDrive - MSFT/Documents/latexdev/src/theory.tex\" \"c:/Users/Triet/OneDrive - MSFT/Documents/latexdev/src/code.tex\" \"c:/Users/Triet/OneDrive - MSFT/Documents/latexdev/src/results.tex\" \"c:/Users/Triet/OneDrive - MSFT/Documents/latexdev/src/conclusion.tex\")"
     ]
   }
 }

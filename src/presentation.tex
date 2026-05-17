@@ -1,228 +1,731 @@
-\documentclass[17pt]{beamer}
+% !TEX program = pdflatex
+\documentclass[13pt, aspectratio=169]{beamer}
 
+% ─── Vietnamese support ───────────────────────────────────────────
 \usepackage[utf8]{vietnam}
 \usepackage[vietnamese]{babel}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{graphics}
-\usepackage{caption}
-\usepackage{booktabs}
-\usepackage{hyperref}
+
+% ─── Math ────────────────────────────────────────────────────────
+\usepackage{amsmath, amsfonts, amssymb}
+
+% ─── Graphics & TikZ ─────────────────────────────────────────────
 \usepackage{graphicx}
 \usepackage{tikz}
-\usepackage{listings}
+\usetikzlibrary{arrows.meta, shapes.geometric, fit, positioning, backgrounds, calc}
+
+% ─── Tables ──────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{multirow}
+
+% ─── Colors ──────────────────────────────────────────────────────
 \usepackage{xcolor}
+\definecolor{nvidiagreen}{RGB}{50, 150, 30}
+\definecolor{amdred}{RGB}{200, 30, 30}
+\definecolor{codebg}{RGB}{246, 248, 250}
+\definecolor{codeblue}{RGB}{0, 70, 160}
+\definecolor{codegreen}{RGB}{0, 100, 50}
+\definecolor{stepblue}{RGB}{220, 232, 250}
+\definecolor{stepgreen}{RGB}{210, 240, 220}
 
-\usetheme{Madrid}
-\usecolortheme{beaver}
-
-% -------------------------------------------------------
-% Thông tin nhóm
-% -------------------------------------------------------
-\title[BTL XSTK]
-{Phân Tích và Dự Đoán Giá Phát Hành GPU}
-\subtitle{Dựa Trên Các Thông Số Kỹ Thuật}
-
-\author[Nhóm BTL]
-{
-  Trần Gia Tường (2313835) \and
-  Trần Nhật (2412490) \and
-  Trương Minh Triết (2413604) \and
-  Vũ Đại Dương (2410638)
-}
-
-\institute[HCMUT]{
-  GVHD: Huỳnh Thái Duy Phương \\[0.2em]
-  Khoa Khoa học \& Kỹ thuật Máy tính \\
-  Trường Đại học Bách Khoa -- ĐHQG TP.HCM
-}
-
-\date[NH 2025--2026]{TP. Hồ Chí Minh, 2026}
-
-\logo{\includegraphics[scale=0.35]{hcmut.png}}
-
-% -------------------------------------------------------
-% Màu sắc cho code listing
-% -------------------------------------------------------
-\definecolor{dkgreen}{rgb}{0,0.6,0}
-\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+% ─── Code listing ────────────────────────────────────────────────
+\usepackage{listings}
 \lstset{
   language=R,
   basicstyle=\ttfamily\tiny,
-  keywordstyle=\color{blue},
-  commentstyle=\color{dkgreen},
-  stringstyle=\color{red},
-  breaklines=true,
-  showstringspaces=false,
+  keywordstyle=\color{codeblue}\bfseries,
+  commentstyle=\color{codegreen}\itshape,
+  stringstyle=\color{red!70!black},
+  backgroundcolor=\color{codebg},
   frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  numbers=none,
+  xleftmargin=3pt, xrightmargin=3pt,
+  aboveskip=3pt, belowskip=3pt,
 }
 
-% -------------------------------------------------------
-\begin{document}
+% ─── Theme ───────────────────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{beaver}
+\setbeamertemplate{navigation symbols}{}
+\setbeamerfont{frametitle}{size=\normalsize, series=\bfseries}
 
-% ---- Trang bìa ----
+% ─── Presentation info ───────────────────────────────────────────
+
+\title[BTL XSTK]{%
+  {\normalsize Báo cáo Bài tập lớn Xác Suất Thống Kê}\\[0.4em]
+  \textbf{Phân Tích và Dự Đoán Giá Phát Hành GPU}%
+}
+\subtitle{Dựa Trên Các Thông Số Kỹ Thuật}
+\author[Nhóm 16--L03]{
+  \textbf{Nhóm 16}
+}
+\institute[HCMUT]{
+  Lớp \textbf{L03} \\[0.2em]
+  GVHD: Huỳnh Thái Duy Phương \quad  \\[0.2em]
+}
+\date[NH 2025--2026]{TP. Hồ Chí Minh, 2026}
+\logo{\includegraphics[height=0.65cm]{hcmut.png}}
+
+% ─── Helpers ─────────────────────────────────────────────────────
+\newcommand{\hl}[1]{\textcolor{red!75!black}{\textbf{#1}}}
+
+% ─── Section Transition Slide ──────────────────────────────────────
+\AtBeginSection[]
+{
+  \begin{frame}[plain]
+    \centering
+    \begin{tikzpicture}[remember picture, overlay]
+      % Nền xám nhạt sang trọng
+      \fill[gray!6] (current page.south west) rectangle (current page.north east);
+      % Vạch đỏ trang trí phong cách Beaver
+      \fill[red!75!black] ($(current page.north west)+(1.5cm,0)$) rectangle ($(current page.south west)+(1.7cm,0)$);
+    \end{tikzpicture}
+    \vspace{1.8cm}
+    \begin{flushleft}
+      \hspace{1.8cm}
+      {\color{red!75!black}\large\bfseries PHẦN \thesection}\\[0.8em]
+      \hspace{1.8cm}
+      {\color{black!85}\Huge\bfseries\insertsectionhead}
+      
+      \vspace{1.2cm}
+      \hspace{1.8cm}
+      \begin{minipage}{0.7\textwidth}
+        \color{gray!60}\footnotesize
+        \hrule height 0.5pt
+        \vspace{0.6em}
+        Báo cáo Bài tập lớn Xác suất Thống kê --- Nhóm 16 --- L03
+      \end{minipage}
+    \end{flushleft}
+  \end{frame}
+}
+
+% ═══════════════════════════════════════════════════════════════════
+\begin{document}
+% ═══════════════════════════════════════════════════════════════════
+
 \frame{\titlepage}
 
-% ---- Mục lục ----
+\begin{frame}{Danh sách thành viên --- Nhóm 16, Lớp L03}
+  \centering
+  \renewcommand{\arraystretch}{1.5}
+  \begin{tabular}{clcc}
+    \toprule
+    \textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Đóng góp} \\
+    \midrule
+    1 & Trần Gia Tường & 2313835 & 100\% \\
+    2 & Trần Nhật      & 2412490 & 100\% \\
+    3 & Trương Minh Triết & 2413604 & 100\% \\
+    4 & Vũ Đại Dương   & 2410638 & 100\% \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.8em}
+\end{frame}
+
 \begin{frame}{Nội dung trình bày}
   \tableofcontents
 \end{frame}
 
-% ================================================================
-\section{Đối tượng, Mục tiêu và Kết quả Hướng tới}
-% ================================================================
+% ══════════════════════════════════════════════════════════════════
+\section{Tổng quan đề tài}
+% ══════════════════════════════════════════════════════════════════
 
-\begin{frame}{Bộ dữ liệu}
-  \begin{itemize}
-    \item Bộ dữ liệu \textbf{All\_GPUs.csv} từ Kaggle (tác giả: Iliasse Kkaf)
-    \item Hơn \textbf{3.400 GPU} từ NVIDIA, AMD và Intel
-    \item \textbf{34 thuộc tính}; nhóm chọn \textbf{8 biến} chính:
-  \end{itemize}
-  \begin{columns}
-    \column{0.5\textwidth}
-      \begin{itemize}
-        \item \texttt{core\_speed}
-        \item \texttt{tdp}
-        \item \texttt{memory\_size}
-        \item \texttt{memory\_type}
-      \end{itemize}
-    \column{0.5\textwidth}
-      \begin{itemize}
-        \item \texttt{memory\_bus}
-        \item \texttt{manufacturer}
-        \item \texttt{release\_year}
-        \item \textbf{\texttt{release\_price}} (biến mục tiêu)
-      \end{itemize}
+\begin{frame}{Bộ dữ liệu \& Biến sử dụng}
+  \begin{columns}[T]
+    \column{0.38\textwidth}
+      \begin{block}{All\_GPUs.csv (Kaggle)}
+        \footnotesize
+        \begin{itemize}
+          \item \textbf{3.406} GPU: NVIDIA, AMD, Intel
+          \item \textbf{34} thuộc tính gốc
+          \item \(\approx\) \hl{84\%} thiếu giá niêm yết
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{alertblock}{Vấn đề cốt lõi}
+        \footnotesize 34 thuộc tính $\xrightarrow{\text{lọc 3 tầng}}$ \hl{7 đặc trưng} + 1 biến mục tiêu
+      \end{alertblock}
+    \column{0.59\textwidth}
+      \centering
+      \small
+      \renewcommand{\arraystretch}{1.15}
+      \begin{tabular}{lll}
+        \toprule
+        \textbf{Biến} & \textbf{Kiểu} & \textbf{Vai trò} \\
+        \midrule
+        \texttt{Release\_Price} & Liên tục & \hl{Mục tiêu $Y$} \\
+        \texttt{Memory\_Bandwidth} & Liên tục & Độc lập \\
+        \texttt{Max\_Power} & Liên tục & Độc lập \\
+        \texttt{Core\_Speed} & Liên tục & Độc lập \\
+        \texttt{Memory} & Rời rạc & Độc lập \\
+        \texttt{Release\_Year} & Số nguyên & Độc lập \\
+        \texttt{Manufacturer} & Phân loại & Độc lập \\
+        \texttt{Memory\_Type} & Phân loại & Độc lập \\
+        \bottomrule
+      \end{tabular}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Bối cảnh và Mục tiêu}
-  \begin{block}{Câu hỏi nghiên cứu}
-    Thông số kỹ thuật nào thực sự \alert{quyết định giá} GPU?
-    NVIDIA có đắt hơn AMD đáng kể không?
-  \end{block}
+\begin{frame}{Hai câu hỏi nghiên cứu}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{\normalsize Câu hỏi 1 --- Hồi quy}
+        \vspace{0.3em}
+        \centering
+        Thông số nào \hl{quyết định giá} GPU?
+        \vspace{0.4em}
+
+        \[\log(\hat{Y}) = \beta_0 + \sum_{i=1}^{k}\beta_i X_i + \varepsilon\]
+
+        \footnotesize Mục tiêu: $R^2 \geq 70\%$, MAE nhỏ
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{\normalsize Câu hỏi 2 --- ANOVA}
+        \vspace{0.3em}
+        \centering
+        NVIDIA đắt hơn AMD có \hl{ý nghĩa thống kê}?
+        \vspace{0.4em}
+
+        \[H_0\colon \mu_{\text{NVIDIA}} = \mu_{\text{AMD}}\]
+
+        \footnotesize Welch's ANOVA (phương sai không đồng nhất)
+      \end{block}
+  \end{columns}
   \vspace{0.5em}
-  \textbf{Mục tiêu cụ thể:}
-  \begin{enumerate}
-    \item Phân tích thống kê mô tả và phân phối giá GPU
-    \item Kiểm định giả thuyết về sự khác biệt giá giữa NVIDIA -- AMD
-    \item Xây dựng mô hình hồi quy dự đoán \texttt{release\_price}
-  \end{enumerate}
+  \begin{center}
+    \footnotesize
+    \textcolor{gray!70}{Công cụ: R --- dữ liệu thực tế, kiểm định nghiêm ngặt}
+  \end{center}
 \end{frame}
 
-% ================================================================
+% ══════════════════════════════════════════════════════════════════
 \section{Cơ sở Lý thuyết}
-% ================================================================
+% ══════════════════════════════════════════════════════════════════
 
-\begin{frame}{Các phương pháp thống kê sử dụng}
-  \begin{columns}
-    \column{0.5\textwidth}
-      \textbf{Thống kê mô tả}
-      \begin{itemize}
-        \item Trung bình, trung vị, độ lệch chuẩn
-        \item Phát hiện outlier (IQR)
-        \item Phân phối và biểu đồ
-      \end{itemize}
-    \column{0.5\textwidth}
-      \textbf{Kiểm định \& Mô hình}
-      \begin{itemize}
-        \item Kiểm định t (so sánh 2 nhóm)
-        \item Kiểm định Wilcoxon
-        \item Hồi quy tuyến tính bội
-        \item Đánh giá: $R^2$, RMSE, MAE
-      \end{itemize}
+\begin{frame}{Đặc thù dữ liệu GPU cần xử lý}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \begin{exampleblock}{\footnotesize Bộ nhớ rời rạc}
+        \footnotesize Bus/VRAM chỉ tồn tại theo chuẩn cứng (64/128/256 bit, 2/4/8 GB) --- không thể nội suy tuyến tính
+      \end{exampleblock}
+      \vspace{0.35em}
+      \begin{exampleblock}{\footnotesize ATI $\equiv$ AMD}
+        \footnotesize ATI bị AMD thâu tóm năm 2006; dataset có cả hai nhãn --- cần hợp nhất
+      \end{exampleblock}
+    \column{0.48\textwidth}
+      \begin{alertblock}{\footnotesize Intel: thiếu giá 100\%}
+        \footnotesize Toàn bộ GPU Intel không có \texttt{Release\_Price} $\Rightarrow$ loại bỏ hoàn toàn
+      \end{alertblock}
+      \vspace{0.35em}
+      \begin{alertblock}{\footnotesize Định giá dị biệt}
+        \footnotesize Workstation/Quadro, Titan limited, Dual-GPU, Hydro Copper $\Rightarrow$ lọc bỏ bằng regex
+      \end{alertblock}
   \end{columns}
 \end{frame}
 
-% ================================================================
-\section{Xử lý Dữ liệu}
-% ================================================================
+\begin{frame}{Phương pháp loại Outlier --- IQR Tukey}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.80]
+        % Box
+        \draw[thick] (0,0) rectangle (3,1.2);
+        \draw[thick] (1.2,0) -- (1.2,1.2);
+        \draw[thick, red!70!black, line width=1.5pt] (2.1,0) -- (2.1,1.2);
+        % Whiskers
+        \draw[thick] (0,0.6) -- (-1.0,0.6);
+        \draw[thick] (3,0.6) -- (4.5,0.6);
+        \draw[thick] (-1.0,0.35) -- (-1.0,0.85);
+        \draw[thick] (4.5,0.35) -- (4.5,0.85);
+        % Outlier points
+        \fill[red] (5.2,0.6) circle (3.5pt);
+        \fill[red] (5.8,0.6) circle (3.5pt);
+        \node[font=\tiny, text=red] at (5.5,1.1) {Outlier};
+        % Labels
+        \node[font=\tiny, align=center] at (-1.0,-0.35) {$Q_1 - 1.5\,\text{IQR}$};
+        \node[font=\tiny] at (0.6,-0.35) {$Q_1$};
+        \node[font=\tiny, text=red!70!black] at (2.1,-0.35) {$Q_3$};
+        \node[font=\tiny, align=center] at (4.5,-0.35) {$Q_3 + 1.5\,\text{IQR}$};
+        \draw[<->, dashed, gray!70] (1.2,-0.75) -- (2.1,-0.75)
+          node[midway, below, font=\tiny] {IQR};
+      \end{tikzpicture}
+      \vspace{0.3em}
 
-\begin{frame}{Quy trình xử lý dữ liệu}
-  \begin{figure}
-    \centering
-    \includegraphics[width=0.85\textwidth]{figures/chart_quy_trinh_xu_ly.png}
-    \caption{Quy trình làm sạch và chuẩn hóa dữ liệu}
-  \end{figure}
+    \column{0.47\textwidth}
+      \begin{alertblock}{Tại sao IQR (Tukey)?}
+        \footnotesize
+        \begin{itemize}
+          \item \textbf{Bền vững} với phân phối lệch --- không bị kéo bởi flagship cực giá
+          \item Không giả định phân phối chuẩn
+          \item Dựa trên trung vị, không phụ thuộc trung bình
+        \end{itemize}
+      \end{alertblock}
+      \vspace{0.25em}
+      \begin{exampleblock}{Nguyên tắc then chốt}
+        \footnotesize IQR \textbf{phải tính trên dữ liệu gốc} trước điền khuyết.
+
+        \vspace{0.1em}
+        Nếu điền trước $\Rightarrow$ IQR co giả tạo $\Rightarrow$ quan sát bình thường bị loại nhầm.
+      \end{exampleblock}
+  \end{columns}
 \end{frame}
 
-\begin{frame}{Phát hiện và xử lý Outlier}
-  \begin{figure}
-    \centering
-    \includegraphics[width=0.85\textwidth]{figures/boxplot_outliers.png}
-    \caption{Boxplot phát hiện outlier theo nhà sản xuất}
-  \end{figure}
+% \begin{frame}{Chiến lược lọc đặc trưng: 3 tầng}
+%   \centering
+%   \begin{tikzpicture}[
+%     node distance=0.38cm,
+%     box/.style={rectangle, rounded corners=3pt, draw=black!50,
+%                 text centered, minimum width=8.2cm, minimum height=0.62cm,
+%                 font=\footnotesize},
+%     note/.style={font=\tiny, text=gray!75, text width=3.0cm, align=left},
+%     >=stealth, thick
+%   ]
+%     \node[box, fill=gray!15] (t0)
+%       {\textbf{Không gian ban đầu: 34 thuộc tính}};
+% 
+%     \node[box, fill=yellow!35, draw=yellow!60!black, below=of t0] (t1)
+%       {\textbf{Tầng 1:} Loại 14 biến --- không ý nghĩa kinh tế};
+%     \node[note, right=0.2cm of t1] {Định danh sản phẩm,\\API phần mềm, cờ nhị phân\\mất cân bằng ($>$98\%)};
+% 
+%     \node[box, fill=orange!25, draw=orange!60!black, below=of t1] (t2)
+%       {\textbf{Tầng 2:} Loại 10 biến --- dẫn xuất / trùng lặp};
+%     \node[note, right=0.2cm of t2] {Pixel\_Rate, Texture\_Rate,\\Shader, Boost\_Clock,\\Process, \ldots};
+% 
+%     \node[box, fill=red!12, draw=red!50, below=of t2] (t3)
+%       {\textbf{Tầng 3:} Kiểm định VIF thực nghiệm $<10$};
+%     \node[note, right=0.2cm of t3] {VIF max = 7.34\\(log\_Memory\_BW)\\$\Rightarrow$ giữ nguyên tất cả};
+% 
+%     \node[box, fill=green!20, draw=green!50!black, below=of t3] (t4)
+%       {\textbf{7 đặc trưng chính thức} + \texttt{Release\_Price}};
+% 
+%     \draw[->] (t0) -- (t1);
+%     \draw[->] (t1) -- (t2);
+%     \draw[->] (t2) -- (t3);
+%     \draw[->] (t3) -- (t4);
+%   \end{tikzpicture}
+% \end{frame}
+
+
+\begin{frame}{Tại sao dùng mô hình Log-Linear?}
+  \begin{block}{Vấn đề với mô hình Linear}
+    \footnotesize
+    \begin{itemize}
+      \item Giá GPU phân phối \textbf{lệch phải} mạnh (flagship tạo đuôi dài)
+      \item Phương sai phần dư \textbf{không đồng nhất} (Heteroscedasticity)
+      \item OLS giả định cộng gộp tuyệt đối --- không phù hợp
+    \end{itemize}
+  \end{block}
+  \begin{exampleblock}{Tại sao Log-Linear?}
+    \footnotesize Thông số kỹ thuật tác động lên giá theo \textbf{tỷ lệ \%}:
+    \vspace{0.1em}
+
+    \[\log(Y) = \beta_0 + \sum \beta_i X_i + \varepsilon\]
+
+    $\beta_i$ đo \% thay đổi giá khi $X_i$ tăng 1 đơn vị. Log nén đuôi, ổn định phương sai.
+  \end{exampleblock}
 \end{frame}
 
-% ================================================================
+\begin{frame}{Các kiểm định thống kê sử dụng}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \begin{block}{Welch's ANOVA}
+        \scriptsize
+        \textbf{Ý nghĩa:} So sánh giá trị trung bình hai nhóm độc lập.\\
+        \textbf{Mục tiêu:} Kiểm định chênh lệch giá hãng NVIDIA--AMD khi phương sai không đồng nhất.\\
+        $H_0$: $\mu_{\text{NVIDIA}} = \mu_{\text{AMD}}$ (Welch hiệu chỉnh bậc tự do).
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{VIF --- Đa cộng tuyến}
+        \scriptsize
+        \textbf{Ý nghĩa:} Đo lường mức độ tương quan giữa các biến độc lập.\\
+        \textbf{Mục tiêu:} Phát hiện sự trùng lặp thông tin gây sai lệch hệ số OLS.\\
+        $\text{VIF}_j = \dfrac{1}{1 - R^2_j}$ (Ngưỡng $< 10$, $R^2_j$: hồi quy $X_j$ lên các biến khác).
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Breusch-Pagan}
+        \scriptsize
+        \textbf{Ý nghĩa:} Kiểm định phương sai sai số thay đổi (Heteroscedasticity).\\
+        \textbf{Mục tiêu:} Đảm bảo tính hiệu quả tuyến tính tốt nhất (BLUE) của OLS.\\
+        $H_0$: Var$(\varepsilon_i)$ không phụ thuộc $X$ ($p > 0.05 \Rightarrow$ phương sai đồng nhất).
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Shapiro-Wilk}
+        \scriptsize
+        \textbf{Ý nghĩa:} Kiểm định giả định phần dư có phân phối chuẩn.\\
+        \textbf{Mục tiêu:} Đảm bảo tính hợp lệ cho các kiểm định hệ số t-test, F-test.\\
+        $H_0$: phần dư $\sim \mathcal{N}(0, \sigma^2)$ (mẫu lớn kết hợp Q-Q Plot và CLT).
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Pipeline phân tích: 11 bước}
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.22cm and 0.8cm,
+    pbox/.style={rectangle, rounded corners=2pt, draw=gray!60,
+                 text centered, font=\tiny,
+                 minimum width=5.0cm, minimum height=0.52cm},
+    lbl/.style={font=\scriptsize\bfseries},
+    >=stealth
+  ]
+    % Left column - preprocessing
+    \node[pbox, fill=stepblue] (s1) {1. Tải dữ liệu --- 8 biến ($N=3{,}406$)};
+    \node[pbox, fill=stepblue, below=of s1] (s2) {2. Làm sạch, xóa thiếu giá $\to N=498$};
+    \node[pbox, fill=stepblue, below=of s2] (s3) {3. Loại ngoại lai IQR $\to N=446$};
+    \node[pbox, fill=stepblue, below=of s3] (s4) {4. Chia Train/Test 90:10 (401 / 45)};
+    \node[pbox, fill=stepblue, below=of s4] (s5) {5. Điền khuyết: Regex + Mode + Median};
+    \node[pbox, fill=stepblue, below=of s5] (s6) {6. Log-transform \texttt{Memory\_Bandwidth}};
+
+    % Right column - modeling
+    \node[pbox, fill=stepgreen, right=0.8cm of s1] (s7) {7. MLR vs Log-Linear + VIF check};
+    \node[pbox, fill=stepgreen, below=of s7] (s8) {8. Welch ANOVA + BP + Shapiro-Wilk};
+    \node[pbox, fill=stepgreen, below=of s8] (s9) {9. Đánh giá trên Test set ($N=45$)};
+    \node[pbox, fill=stepgreen, below=of s9] (s10) {10. Z-score + Feature importance};
+    \node[pbox, fill=stepgreen, below=of s10] (s11) {11. Dự báo GPU mới (validation)};
+
+    % Labels
+    \node[lbl, text=blue!60, above=0.12cm of s1] {Tiền xử lý};
+    \node[lbl, text=green!50!black, above=0.12cm of s7] {Mô hình \& Đánh giá};
+
+    % Arrows left
+    \draw[->] (s1)--(s2); \draw[->] (s2)--(s3); \draw[->] (s3)--(s4);
+    \draw[->] (s4)--(s5); \draw[->] (s5)--(s6);
+    % Arrows right
+    \draw[->] (s7)--(s8); \draw[->] (s8)--(s9);
+    \draw[->] (s9)--(s10); \draw[->] (s10)--(s11);
+    % Bridge
+    \draw[->, dashed, thick, red!60!black, rounded corners=4pt]
+      (s6.east) -- ++(0.4,0) |- (s7.west);
+  \end{tikzpicture}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════
+\section{Thực thi Code và Xử lý dữ liệu}
+% ══════════════════════════════════════════════════════════════════
+
+\begin{frame}[fragile]{Code: Tải dữ liệu và Làm sạch}
+  \begin{columns}[T]
+    \column{0.54\textwidth}
+      \begin{lstlisting}
+kept_vars <- c("Name","Release_Price","Max_Power",
+  "Memory","Memory_Bandwidth","Core_Speed",
+  "Release_Date","Manufacturer","Memory_Type")
+raw_data <- read.csv("All_GPUs.csv",
+                     stringsAsFactors=FALSE)
+selected <- raw_data %>% select(all_of(kept_vars))
+      \end{lstlisting}
+      \vspace{2pt}
+      \begin{lstlisting}
+clean_data <- selected %>%
+  mutate(across(where(is.character),
+    ~ifelse(str_trim(.) %in% c("","-","N/A"),
+            NA, str_trim(.)))) %>%
+  filter(Manufacturer != "Intel") %>%
+  mutate(Manufacturer =
+    str_replace(Manufacturer,"ATI","AMD")) %>%
+  filter(!str_detect(Name, regex(
+    "Quadro|Crossfire|Titan",ignore_case=T))) %>%
+  mutate(
+    Release_Price = as.numeric(
+      str_extract(Release_Price,"\\d+\\.?\\d*")),
+    Memory_Bandwidth = as.numeric(
+      str_extract(Memory_Bandwidth,"\\d+\\.?\\d*"))
+    # ... tuong tu cho Max_Power, Memory, Core_Speed
+  ) %>% filter(!is.na(Release_Price))
+      \end{lstlisting}
+    \column{0.43\textwidth}
+      \begin{block}{Điểm kỹ thuật}
+        \footnotesize
+        \begin{itemize}
+          \item \texttt{all\_of()} ném lỗi nếu tên cột sai --- không silent drop
+          \item \texttt{across(where(is.character))} xử lý toàn bộ cột text trong 1 lần
+          \item Regex lọc Quadro/Crossfire/Titan --- loại định giá dị biệt
+          \item \texttt{str\_extract()} $\to$ \texttt{as.numeric()}: chuỗi không hợp lệ tự thành NA
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\footnotesize Kết quả}
+        \footnotesize
+        $3{,}406 \xrightarrow{\text{lọc}} 498$ quan sát có giá
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Code: Outlier $\to$ Split $\to$ Điền khuyết}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \begin{lstlisting}
+# IQR Outlier Detection
+calc_tukey <- function(vec) {
+  q1 <- quantile(vec,0.25)
+  q3 <- quantile(vec,0.75); iqr <- q3 - q1
+  list(lower=q1-1.5*iqr, upper=q3+1.5*iqr)
+}
+bnd <- calc_tukey(na.omit(clean_data$Release_Price))
+clean_data <- clean_data %>%
+  filter(Release_Price <= bnd$upper)
+# => Q1=150, Q3=349, nguong=647.5
+# => Loai 52, con lai 446 obs
+      \end{lstlisting}
+      \begin{lstlisting}
+# Train/Test 90:10 - split TRUOC dien khuyet
+set.seed(2026252)
+idx <- sample(1:nrow(clean_data),
+              0.9*nrow(clean_data))
+train_data <- clean_data[idx,]   # N=401
+test_data  <- clean_data[-idx,]  # N=45
+# Dien khuyet chi tinh tu train_data
+impute_params <- list(
+  Memory    = get_mode(train_data$Memory),
+  Core_Speed= median(train_data$Core_Speed,na.rm=T),
+  Max_Power = median(train_data$Max_Power, na.rm=T))
+train_data <- apply_imputation(train_data, impute_params)
+test_data  <- apply_imputation(test_data,  impute_params)
+      \end{lstlisting}
+    \column{0.46\textwidth}
+      \begin{alertblock}{3 nguyên tắc chống data leakage}
+        \scriptsize
+        \begin{enumerate}
+          \item IQR tính trên dữ liệu \textbf{gốc}
+          \item Chia Train/Test \textbf{trước} điền khuyết
+          \item Tham số \textbf{chỉ từ Train} $\to$ áp cả hai tập
+        \end{enumerate}
+      \end{alertblock}
+      \vspace{0.15em}
+      \begin{block}{Điền khuyết theo vai trò biến}
+        \scriptsize
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{ll}
+          \texttt{Memory} & Regex $\to$ Mode \\
+          Số liên tục & Median \\
+          Phân loại & Mode \\
+        \end{tabular}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Code: Xây dựng \& So sánh Mô hình}
+  \begin{columns}[T]
+    \column{0.54\textwidth}
+      \begin{lstlisting}
+# Log-transform Memory_Bandwidth (phan phoi lech phai)
+train_data <- train_data %>%
+  mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
+test_data <- test_data %>%
+  mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
+
+# Mo hinh 1: Linear OLS
+mlr_linear <- lm(
+  Release_Price ~ Max_Power + Memory +
+  Memory_Bandwidth + Core_Speed +
+  Manufacturer + Memory_Type + Release_Year,
+  data = train_data)
+
+# Mo hinh 2: Log-Linear (chinh thuc)
+mlr_log <- lm(
+  log(Release_Price) ~ Max_Power + Memory +
+  log_Memory_Bandwidth + Core_Speed +
+  Manufacturer + Memory_Type + Release_Year,
+  data = train_data)
+
+# VIF check (GVIF^(1/(2*Df)) < sqrt(10) = 3.16)
+car::vif(mlr_log)
+      \end{lstlisting}
+    \column{0.43\textwidth}
+      \begin{block}{VIF --- Log-Linear model}
+        \footnotesize
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{lr}
+          \toprule
+          Biến & VIF \\
+          \midrule
+          log\_Memory\_BW & 7.34 \\
+          Release\_Year & 4.53 \\
+          Max\_Power & 3.97 \\
+          Core\_Speed & 3.64 \\
+          Memory & 3.17 \\
+          Manufacturer & 1.97 \\
+          Memory\_Type & 4.06 \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{}
+        \footnotesize \textcolor{green!60!black}{\textbf{Max VIF = 7.34 $<$ 10}} \\
+        $\Rightarrow$ Không đa cộng tuyến
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════
 \section{Kết quả Thu được}
-% ================================================================
+% ══════════════════════════════════════════════════════════════════
 
-\begin{frame}{Kết quả mô hình hồi quy}
-  \begin{figure}
+\begin{frame}{Kết quả 1: NVIDIA đắt hơn AMD \$69.61}
+  \begin{block}{Welch's ANOVA ($F=31.67$, $p = 3.99 \times 10^{-8}$)}
     \centering
-    \includegraphics[width=0.78\textwidth]{figures/scatter_actual_vs_predicted.png}
-    \caption{Giá thực tế vs. Giá dự đoán (Hồi quy tuyến tính)}
-  \end{figure}
-\end{frame}
-
-\begin{frame}{Đánh giá mô hình}
-  % TODO: điền số liệu từ kết quả R
-  \begin{table}
-    \centering
-    \begin{tabular}{lc}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{lrr}
       \toprule
-      \textbf{Chỉ số} & \textbf{Giá trị} \\
+       & \textcolor{nvidiagreen}{\textbf{NVIDIA}} & \textcolor{amdred}{\textbf{AMD}} \\
       \midrule
-      $R^2$           & \ldots \\
-      RMSE            & \ldots \\
-      MAE             & \ldots \\
+      $n$ & 182 & 219 \\
+      Mean & \$276.56 & \$206.95 \\
+      Median & \$246.22 & \$199.00 \\
+      SD & \$139.58 & \$100.30 \\
       \bottomrule
     \end{tabular}
-    \caption{Chỉ số đánh giá mô hình trên tập kiểm tra}
-  \end{table}
-  \begin{block}{Nhận xét}
-    % TODO: thêm nhận xét sau khi có số liệu
   \end{block}
+  \vspace{0.5em}
+  \begin{alertblock}{}
+    \centering
+    $p \ll 0.001$ $\Rightarrow$ \hl{Bác bỏ $H_0$}: NVIDIA đắt hơn AMD \hl{\$69.61} (+33.6\%)
+  \end{alertblock}
+  \vspace{0.3em}
+  \centering
+  {\footnotesize \textcolor{gray!65}{SD NVIDIA (\$140) $\gg$ SD AMD (\$100) $\Rightarrow$ phương sai không đồng nhất $\Rightarrow$ dùng Welch's ANOVA}}
 \end{frame}
 
-\begin{frame}{Kiểm định NVIDIA vs. AMD}
-  % TODO: điền kết quả kiểm định t/Wilcoxon
-  \begin{itemize}
-    \item Hypotheses: $H_0$: không có sự khác biệt giá trung bình
-    \item Phương pháp: \ldots
-    \item p-value: \ldots
-    \item Kết luận: \ldots
-  \end{itemize}
+\begin{frame}{Kết quả 2: Yếu tố nào quyết định giá?}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figures/coefficient_importance.png}
+    \column{0.45\textwidth}
+      \begin{block}{Hệ số chuẩn hóa (Z-score)}
+        \footnotesize Adj. $R^2 = 86.62\%$
+        \vspace{0.2em}
+
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{lrl}
+          \toprule
+          Biến & $\hat{\beta}$ & \\
+          \midrule
+          \hl{log(Băng thông BN)} & \hl{0.400} & *** \\
+          Năm phát hành & $-0.221$ & *** \\
+          \hl{NVIDIA premium} & \hl{0.210} & *** \\
+          Xung nhịp lõi & 0.168 & *** \\
+          Công suất TDP & 0.137 & *** \\
+          Dung lượng RAM & $-0.014$ & n.s. \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\footnotesize Insight nổi bật}
+        \footnotesize RAM size \textbf{không ý nghĩa} khi đã có băng thông --- tốc độ truyền dữ liệu quan trọng hơn dung lượng
+      \end{exampleblock}
+  \end{columns}
 \end{frame}
 
-% ================================================================
-\section{Kết luận và Đề nghị}
-% ================================================================
+\begin{frame}{Kết quả 3: Phân phối giá \& Chẩn đoán mô hình}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figures/price_distribution_compare.png}
+
+      \vspace{0.2em}
+      {\tiny Phân phối gốc (lệch phải) $\to$ sau log-transform (chuẩn)}
+    \column{0.45\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figures/diagnostic_residuals.png}
+
+      {\tiny Residuals vs Fitted (trái) \& Q-Q plot (phải)}
+
+      \vspace{0.3em}
+      \begin{block}{\footnotesize Kiểm định giả định}
+        \footnotesize
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{lll}
+          VIF max & 7.34 & \textcolor{green!60!black}{\checkmark} \\
+          Breusch-Pagan & $p=0.196$ & \textcolor{green!60!black}{\checkmark} \\
+          Shapiro-Wilk & $W=0.964$ & \textcolor{orange!70!black}{$\approx$\checkmark} \\
+        \end{tabular}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Kết quả 4: Hiệu năng dự đoán}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \centering
+      \includegraphics[width=0.92\linewidth]{figures/scatter_actual_vs_predicted.png}
+
+      {\tiny Giá thực tế vs. Dự đoán trên Test set ($N=45$)}
+    \column{0.47\textwidth}
+      \begin{block}{So sánh mô hình (Test set)}
+        \footnotesize
+        \renewcommand{\arraystretch}{1.2}
+        \begin{tabular}{lccc}
+          \toprule
+          Mô hình & RMSE & MAE & $R^2$ \\
+          \midrule
+          Linear & \$62.18 & \$45.76 & 0.745 \\
+          \hl{Log-Linear} & \hl{\$51.92} & \hl{\$33.50} & \hl{0.823} \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \vspace{0.4em}
+      \begin{exampleblock}{Validation in-the-wild (3 GPU mới)}
+        \footnotesize
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{lcc}
+          \toprule
+          GPU & Linear & \textbf{Log-Lin} \\
+          \midrule
+          GTX 1660 & $+14.2\%$ & \textbf{$+6.8\%$} \\
+          RX 590 & $+9.5\%$ & \textbf{$-1.4\%$} \\
+          RTX 3060 & $+25.5\%$ & \textbf{$-4.4\%$} \\
+          \bottomrule
+        \end{tabular}
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════
+\section{Kết luận}
+% ══════════════════════════════════════════════════════════════════
 
 \begin{frame}{Kết luận}
-  \begin{block}{Những gì đã làm được}
-    \begin{itemize}
-      \item Phân tích thống kê toàn diện bộ dữ liệu GPU
-      \item Xây dựng và đánh giá mô hình hồi quy dự đoán giá
-      \item Kiểm định sự khác biệt giá giữa NVIDIA và AMD
-    \end{itemize}
-  \end{block}
-  \begin{block}{Hạn chế và hướng phát triển}
-    \begin{itemize}
-      \item Dữ liệu thiếu một số năm gần đây (GPU AI thế hệ mới)
-      \item Có thể thử mô hình phi tuyến (Random Forest, XGBoost)
-    \end{itemize}
-  \end{block}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \begin{block}{4 Insight chính}
+        \footnotesize
+        \begin{enumerate}
+          \item \textbf{Băng thông} ($\beta=0.40$) quyết định giá mạnh nhất --- không phải dung lượng RAM
+          \item NVIDIA đắt hơn AMD \textbf{\$69.61} ($+23.3\%$) --- phí hệ sinh thái CUDA
+          \item Năm phát hành âm ($\beta=-0.22$) --- định luật giảm giá công nghệ
+          \item Mô hình Log-Linear: Adj. $R^2=86.62\%$, MAE=\$33.50
+        \end{enumerate}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{exampleblock}{Ý nghĩa thực tiễn}
+        \footnotesize
+        \begin{itemize}
+          \item Phát hiện GPU bị định giá sai (sai số $1\text{--}7\%$)
+          \item Cơ sở so sánh: ưu tiên \textbf{băng thông cao} (GDDR6, HBM) hơn dung lượng lớn
+          \item Định lượng ``phí thương hiệu'' NVIDIA $\approx 23\%$
+        \end{itemize}
+      \end{exampleblock}
+      \vspace{0.35em}
+      \begin{alertblock}{Hạn chế}
+        \footnotesize
+        \begin{itemize}
+          \item $84\%$ thiếu giá $\Rightarrow$ selection bias (MNAR)
+          \item Chưa tách biệt giai đoạn COVID/crypto 2020--22
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
 \end{frame}
 
 \begin{frame}[plain]
-  \begin{center}
-    {\Huge \textbf{Cảm ơn thầy và các bạn}}\\[1em]
-    {\large đã lắng nghe!}\\[2em]
-    \textit{Nhóm xin nhận câu hỏi.}
-  \end{center}
+  \centering
+  \vspace{1.2em}
+  {\Huge \textbf{Cảm ơn thầy và các bạn}}\\[0.7em]
+  {\large đã lắng nghe!}\\[0.8em]
 \end{frame}
 
 \end{document}
