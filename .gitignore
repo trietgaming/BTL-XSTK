@@ -1,5 +1,5 @@
 # LaTeX build artifacts — all redirected to build/
-build/
+build/**
 
 # Legacy patterns (root-level leftovers)
 main.aux

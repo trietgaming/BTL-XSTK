@@ -1,6 +1,0 @@
-\babel@toc {vietnamese}{}\relax 
-\beamer@sectionintoc {1}{Tổng quan đề tài}{5}{0}{1}
-\beamer@sectionintoc {2}{Cơ sở Lý thuyết}{8}{0}{2}
-\beamer@sectionintoc {3}{Thực thi Code và Xử lý dữ liệu}{16}{0}{3}
-\beamer@sectionintoc {4}{Kết quả Thu được}{20}{0}{4}
-\beamer@sectionintoc {5}{Kết luận}{25}{0}{5}
