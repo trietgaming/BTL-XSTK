@@ -9,21 +9,21 @@ test_data <- test_data %>%
   mutate(log_Memory_Bandwidth = log(Memory_Bandwidth))
 
 # Mo hinh 1: Linear OLS
-mlr_linear <- lm(
+mlr_model_linear <- lm(
   Release_Price ~ Max_Power + Memory +
   Memory_Bandwidth + Core_Speed +
   Manufacturer + Memory_Type + Release_Year,
   data = train_data)
 
 # Mo hinh 2: Log-Linear (chinh thuc)
-mlr_log <- lm(
+mlr_model_log <- lm(
   log(Release_Price) ~ Max_Power + Memory +
   log_Memory_Bandwidth + Core_Speed +
   Manufacturer + Memory_Type + Release_Year,
   data = train_data)
 
 # VIF check (GVIF^(1/(2*Df)) < sqrt(10) = 3.16)
-car::vif(mlr_log)
+car::vif(mlr_model_log)
       \end{lstlisting}
     \column{0.43\textwidth}
       \begin{block}{VIF --- Log-Linear model}

@@ -18,7 +18,6 @@ Kết quả \textbf{vượt xa kỳ vọng}: Mô hình không chỉ giải thíc
 \begin{enumerate}
   \item \textbf{Sự phụ thuộc vào cỡ mẫu (P-value sensitivity) trong kiểm định phần dư:} Dù đã vượt qua xuất sắc kiểm định BP về phương sai, phân phối phần dư (dù có $W = 0{,}964$ rất cao và biểu đồ dạng chuông đẹp mắt) vẫn có p-value Shapiro-Wilk $< 0{,}05$ do cỡ mẫu đủ lớn ($N=401$). Định lý Giới hạn Trung tâm (CLT) là cơ sở vững chắc cho các suy diễn thống kê ở đây, nhưng có thể thử nghiệm bootstrap để xác nhận thêm trong tương lai.
   \item \textbf{Thiên lệch chọn mẫu (Selection Bias) do dữ liệu khuyết:} Việc lọc bỏ những GPU thiếu giá Niêm yết (hơn 80\% tổng dữ liệu cào được) có thể gây ra MNAR. \textit{Đề xuất:} Bổ sung nguồn thu thập giá lịch sử từ Archive.org hoặc áp dụng Multiple Imputation quy mô lớn thay vì chỉ điền khuyết KNN.
-  \item \textbf{Ảnh hưởng của đại dịch và chuỗi cung ứng:} Dữ liệu chưa tách bạch được giai đoạn bong bóng tiền ảo hoặc thiếu hụt chip (2020-2022). \textit{Đề xuất:} Bổ sung biến kiểm soát (control variables) cho các cú sốc vĩ mô.
   \item \textbf{Không xét tương tác biến:} \textit{Đề xuất:} Thêm interaction terms (ví dụ: \texttt{max\_power:manufacturer}) để xem cách hai hãng định giá dựa trên mức độ tiêu thụ điện năng.
 \end{enumerate}
 
