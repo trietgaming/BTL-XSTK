@@ -126,6 +126,18 @@
   \vspace{0.8em}
 \end{frame}
 
+
+\begin{frame}{Thay đổi mới so với file trước}
+  \begin{block}{Danh sách thay đổi}
+    \footnotesize
+    \begin{itemize}
+      \item Chạy Welch's ANOVA trên \hl{log(Giá)} thay vì giá gốc.
+      \item Kiểm tra giả định ANOVA bằng \hl{Q-Q plot} theo từng hãng.
+      \item Sắp xếp lại trình tự một số Slide.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
 \begin{frame}{Nội dung trình bày}
   \tableofcontents
 \end{frame}
@@ -133,6 +145,39 @@
 % ══════════════════════════════════════════════════════════════════
 \section{Tổng quan đề tài}
 % ══════════════════════════════════════════════════════════════════
+
+\begin{frame}{Hai câu hỏi nghiên cứu}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{\normalsize Câu hỏi 1 --- Hồi quy}
+        \vspace{0.3em}
+        \centering
+        Thông số nào \hl{quyết định giá} GPU?
+        \vspace{0.4em}
+
+        \[\log(\hat{Y}) = \beta_0 + \sum_{i=1}^{k}\beta_i X_i + \varepsilon\]
+
+        \footnotesize Mục tiêu: $R^2 \geq 70\%$, MAE nhỏ
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{\normalsize Câu hỏi 2 --- ANOVA}
+        \vspace{0.3em}
+        \centering
+        Giá GPU NVIDIA đắt hơn AMD có \hl{ý nghĩa thống kê}?
+        \vspace{0.4em}
+
+        \[H_0\colon \mu_{\text{NVIDIA}} = \mu_{\text{AMD}}\]
+
+        \footnotesize Welch's ANOVA (phương sai không đồng nhất)
+      \end{block}
+  \end{columns}
+  \vspace{0.5em}
+  \begin{center}
+    \footnotesize
+    \textcolor{gray!70}{Công cụ: R --- dữ liệu thực tế, kiểm định nghiêm ngặt}
+  \end{center}
+\end{frame}
+
 
 \begin{frame}{Bộ dữ liệu \& Biến sử dụng}
   \begin{columns}[T]
@@ -168,38 +213,6 @@
         \bottomrule
       \end{tabular}
   \end{columns}
-\end{frame}
-
-\begin{frame}{Hai câu hỏi nghiên cứu}
-  \begin{columns}[T]
-    \column{0.47\textwidth}
-      \begin{block}{\normalsize Câu hỏi 1 --- Hồi quy}
-        \vspace{0.3em}
-        \centering
-        Thông số nào \hl{quyết định giá} GPU?
-        \vspace{0.4em}
-
-        \[\log(\hat{Y}) = \beta_0 + \sum_{i=1}^{k}\beta_i X_i + \varepsilon\]
-
-        \footnotesize Mục tiêu: $R^2 \geq 70\%$, MAE nhỏ
-      \end{block}
-    \column{0.47\textwidth}
-      \begin{block}{\normalsize Câu hỏi 2 --- ANOVA}
-        \vspace{0.3em}
-        \centering
-        Giá GPU NVIDIA đắt hơn AMD có \hl{ý nghĩa thống kê}?
-        \vspace{0.4em}
-
-        \[H_0\colon \mu_{\text{NVIDIA}} = \mu_{\text{AMD}}\]
-
-        \footnotesize Welch's ANOVA (phương sai không đồng nhất)
-      \end{block}
-  \end{columns}
-  \vspace{0.5em}
-  \begin{center}
-    \footnotesize
-    \textcolor{gray!70}{Công cụ: R --- dữ liệu thực tế, kiểm định nghiêm ngặt}
-  \end{center}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════
@@ -620,29 +633,32 @@ car::vif(mlr_model_log)
 \section{Kết quả Thu được}
 % ══════════════════════════════════════════════════════════════════
 
-\begin{frame}{Kết quả 1: NVIDIA đắt hơn AMD \$69.61}
-  \begin{block}{Welch's ANOVA ($F=31.67$, $p = 3.99 \times 10^{-8}$)}
+\begin{frame}{Kết quả 1: NVIDIA cao hơn AMD 29,91\%}
+  \centering
+  \includegraphics[width=0.68\textwidth,height=0.31\textheight,keepaspectratio]{figures/qqplot_log_price_anova_groups.png}
+
+  \vspace{0.05em}
+  \begin{block}{Welch's ANOVA trên log(Giá): $F=26{,}398$, $p=4{,}556 \times 10^{-7}$}
     \centering
-    \renewcommand{\arraystretch}{1.3}
-    \begin{tabular}{lrr}
+    \scriptsize
+    \renewcommand{\arraystretch}{1.05}
+    \begin{tabular}{lrrr}
       \toprule
-       & \textcolor{nvidiagreen}{\textbf{NVIDIA}} & \textcolor{amdred}{\textbf{AMD}} \\
+       & \textcolor{nvidiagreen}{\textbf{NVIDIA}} & \textcolor{amdred}{\textbf{AMD}} & \textbf{Quy đổi} \\
       \midrule
-      $n$ & 182 & 219 \\
-      Mean & \$276.56 & \$206.95 \\
-      Median & \$246.22 & \$199.00 \\
-      SD & \$139.58 & \$100.30 \\
+      $n$ & 182 & 219 & -- \\
+      Mean log(Giá) & 5,4880 & 5,2263 & $\Delta = 0,2617$ \\
+      Geometric mean & \$241,77 & \$186,11 & +\$55,67 \\
+      Tỷ lệ giá & \multicolumn{2}{c}{\textcolor{nvidiagreen}{NVIDIA}/\textcolor{amdred}{AMD} = $e^{0,2617}$} & \hl{+29,91\%} \\
       \bottomrule
     \end{tabular}
   \end{block}
-  \vspace{0.5em}
-  \begin{alertblock}{}
+  \vspace{0.05em}
+  \begin{alertblock}{\scriptsize Kết luận}
+    \scriptsize
     \centering
-    $p \ll 0.001$ $\Rightarrow$ \hl{Bác bỏ $H_0$}: NVIDIA đắt hơn AMD \hl{\$69.61} (+33.6\%)
+    $p \ll 0{,}001$ $\Rightarrow$ \hl{Bác bỏ $H_0$}: log-giá trung bình NVIDIA cao hơn AMD có ý nghĩa thống kê.
   \end{alertblock}
-  \vspace{0.3em}
-  \centering
-  {\footnotesize \textcolor{gray!65}{SD NVIDIA (\$140) $\gg$ SD AMD (\$100) $\Rightarrow$ phương sai không đồng nhất $\Rightarrow$ dùng Welch's ANOVA}}
 \end{frame}
 
 \begin{frame}{Kết quả 2: Yếu tố nào quyết định giá?}
@@ -759,9 +775,9 @@ car::vif(mlr_model_log)
       \vspace{0.3em}
       \begin{block}{CQ2 --- NVIDIA đắt hơn AMD?}
         \footnotesize
-        Welch's ANOVA ($F = 31{,}67$, $p < 0{,}001$):\\[0.3em]
+        Welch's ANOVA trên log(Giá) ($F = 26{,}398$, $p < 0{,}001$):\\[0.3em]
         \begin{itemize}
-          \item Chênh lệch giá trung bình: \hl{\$69,61}
+          \item Geometric mean: NVIDIA cao hơn \hl{29,91\%}
           \item Cùng cấu hình: NVIDIA đắt hơn \hl{23,3\%} ($e^{0{,}2097}-1$) --- phí CUDA
         \end{itemize}
       \end{block}

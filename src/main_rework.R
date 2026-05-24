@@ -313,21 +313,92 @@ cat("\n\n===========================================\n")
 cat("KIỂM ĐỊNH THỐNG KÊ (DÀNH CHO BÁO CÁO LATEX)\n")
 cat("===========================================\n")
 
-# 1. Welch's ANOVA: So sánh giá phát hành trung bình giữa Nvidia và AMD
-cat("\n--- 1. Kiểm định Welch's ANOVA (Giá ~ Hãng sản xuất) ---\n")
-anova_result <- oneway.test(Release_Price ~ Manufacturer, data = train_data, var.equal = FALSE)
+# 1. Vẽ Q-Q plot cho log(giá) đầu vào và chạy Welch's ANOVA
+anova_data <- train_data %>%
+  filter(!is.na(Release_Price), Release_Price > 0, !is.na(Manufacturer)) %>%
+  mutate(Log_Release_Price = log(Release_Price)) %>%
+  droplevels()
+
+cat("\n--- 1a. Vẽ Q-Q plot log(giá) theo từng hãng ---\n")
+if (!dir.exists("figures")) dir.create("figures")
+anova_groups <- levels(anova_data$Manufacturer)
+png("figures/qqplot_log_price_anova_groups.png",
+  type = "cairo",
+  width = 1800, height = 800, res = 200
+)
+par(mfrow = c(1, length(anova_groups)), mar = c(5, 5, 4, 2))
+for (group_name in anova_groups) {
+  group_log_prices <- anova_data$Log_Release_Price[anova_data$Manufacturer == group_name]
+  qqnorm(group_log_prices,
+    main = paste("Q-Q Plot log(giá) -", group_name),
+    xlab = "Phân vị lý thuyết",
+    ylab = "Phân vị mẫu của log(giá)",
+    pch = 19,
+    col = rgb(0.2, 0.4, 0.6, 0.5)
+  )
+  qqline(group_log_prices, col = "red", lwd = 2)
+}
+par(mfrow = c(1, 1))
+dev.off()
+cat("--- Đã xuất figures/qqplot_log_price_anova_groups.png ---\n")
+
+cat("\n--- 1b. Vẽ biểu đồ phân phối log(giá) theo từng hãng ---\n")
+log_prices_by_group <- split(anova_data$Log_Release_Price, anova_data$Manufacturer)
+log_price_densities <- lapply(log_prices_by_group, density)
+base_colors <- c("#2c7fb8", "#e34a33", "#41ae76", "#756bb1")
+line_colors <- base_colors[seq_along(log_prices_by_group)]
+fill_colors <- adjustcolor(line_colors, alpha.f = 0.25)
+
+png("figures/log_price_distribution_by_manufacturer.png",
+  type = "cairo",
+  width = 1600, height = 1000, res = 200
+)
+x_range <- range(unlist(lapply(log_price_densities, function(d) d$x)))
+y_max <- max(unlist(lapply(log_price_densities, function(d) d$y)))
+plot(log_price_densities[[1]],
+  type = "n",
+  xlim = x_range, ylim = c(0, y_max * 1.15),
+  main = "Phân phối log(giá phát hành) theo hãng",
+  xlab = "log(Giá phát hành)",
+  ylab = "Mật độ"
+)
+for (idx in seq_along(log_price_densities)) {
+  d <- log_price_densities[[idx]]
+  polygon(c(d$x, rev(d$x)), c(d$y, rep(0, length(d$y))),
+    col = fill_colors[idx], border = NA
+  )
+  lines(d, col = line_colors[idx], lwd = 2)
+  abline(v = mean(log_prices_by_group[[idx]], na.rm = TRUE),
+    col = line_colors[idx], lwd = 2, lty = 2
+  )
+}
+legend("topright",
+  legend = names(log_prices_by_group),
+  fill = fill_colors,
+  border = line_colors,
+  bty = "n"
+)
+dev.off()
+cat("--- Đã xuất figures/log_price_distribution_by_manufacturer.png ---\n")
+
+cat("\n--- 1c. Kiểm định Welch's ANOVA (log(Giá) ~ Hãng sản xuất) ---\n")
+anova_result <- oneway.test(Log_Release_Price ~ Manufacturer, data = anova_data, var.equal = FALSE)
 print(anova_result)
 
 # Thống kê chi tiết theo từng hãng
-amd_prices <- train_data$Release_Price[train_data$Manufacturer == "AMD"]
-nv_prices <- train_data$Release_Price[train_data$Manufacturer == "Nvidia"]
+amd_prices <- anova_data$Release_Price[anova_data$Manufacturer == "AMD"]
+nv_prices <- anova_data$Release_Price[anova_data$Manufacturer == "Nvidia"]
+amd_log_prices <- anova_data$Log_Release_Price[anova_data$Manufacturer == "AMD"]
+nv_log_prices <- anova_data$Log_Release_Price[anova_data$Manufacturer == "Nvidia"]
 cat(sprintf(
-  "AMD: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
-  length(amd_prices), mean(amd_prices, na.rm = TRUE), median(amd_prices, na.rm = TRUE), sd(amd_prices, na.rm = TRUE)
+  "AMD: n=%d, mean=%.2f, median=%.2f, sd=%.2f, mean_log=%.4f, sd_log=%.4f\n",
+  length(amd_prices), mean(amd_prices, na.rm = TRUE), median(amd_prices, na.rm = TRUE), sd(amd_prices, na.rm = TRUE),
+  mean(amd_log_prices, na.rm = TRUE), sd(amd_log_prices, na.rm = TRUE)
 ))
 cat(sprintf(
-  "NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f\n",
-  length(nv_prices), mean(nv_prices, na.rm = TRUE), median(nv_prices, na.rm = TRUE), sd(nv_prices, na.rm = TRUE)
+  "NVIDIA: n=%d, mean=%.2f, median=%.2f, sd=%.2f, mean_log=%.4f, sd_log=%.4f\n",
+  length(nv_prices), mean(nv_prices, na.rm = TRUE), median(nv_prices, na.rm = TRUE), sd(nv_prices, na.rm = TRUE),
+  mean(nv_log_prices, na.rm = TRUE), sd(nv_log_prices, na.rm = TRUE)
 ))
 
 # 2. Kiểm định Phương sai đồng nhất (Breusch-Pagan Test) cho mô hình Log-Linear

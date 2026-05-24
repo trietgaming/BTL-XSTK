@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.27)  17 MAY 2026 20:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.27)  24 MAY 2026 18:01
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1127,85 +1127,92 @@ Package pdftex.def Info: hcmut.png  used on input line 127.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [2
 
-] (./presentation.toc)
+]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 131.
+Package pdftex.def Info: hcmut.png  used on input line 139.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [3
 
-] [4
+] (./presentation.toc)
+File: hcmut.png Graphic file (type png)
+<use hcmut.png>
+Package pdftex.def Info: hcmut.png  used on input line 143.
+(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
+ [4
+
+] [5
 
 ]
-LaTeX Font Info:    Trying to load font information for T5+cmtt on input line 171.
+File: hcmut.png Graphic file (type png)
+<use hcmut.png>
+Package pdftex.def Info: hcmut.png  used on input line 179.
+(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
+ [6
+
+]
+LaTeX Font Info:    Trying to load font information for T5+cmtt on input line 216.
  (e:/texlive/2026/texmf-dist/tex/latex/vntex/t5cmtt.fd
 File: t5cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 171.
+Package pdftex.def Info: hcmut.png  used on input line 216.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [5
+ [7
+
+] [8
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 203.
-(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [6
-
-] [7
-
-]
-File: hcmut.png Graphic file (type png)
-<use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 228.
-(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [8
-
-]
-File: hcmut.png Graphic file (type png)
-<use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 263.
+Package pdftex.def Info: hcmut.png  used on input line 241.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [9
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 310.
+Package pdftex.def Info: hcmut.png  used on input line 276.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [10
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 346.
+Package pdftex.def Info: hcmut.png  used on input line 323.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [11
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 365.
+Package pdftex.def Info: hcmut.png  used on input line 359.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [12
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 398.
+Package pdftex.def Info: hcmut.png  used on input line 378.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [13
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 439.
+Package pdftex.def Info: hcmut.png  used on input line 411.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [14
 
-] [15
+]
+File: hcmut.png Graphic file (type png)
+<use hcmut.png>
+Package pdftex.def Info: hcmut.png  used on input line 452.
+(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
+ [15
+
+] [16
 
 ]
 \openout4 = `presentation.vrb'.
@@ -1214,14 +1221,14 @@ Package pdftex.def Info: hcmut.png  used on input line 439.
 LaTeX Font Info:    Font shape `T5/cmtt/bx/n' in size <6> not available
 (Font)              Font shape `T5/cmtt/m/n' tried instead on input line 5.
 )
-Overfull \vbox (4.3779pt too high) detected at line 496
+Overfull \vbox (4.3779pt too high) detected at line 509
  []
 
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 496.
+Package pdftex.def Info: hcmut.png  used on input line 509.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
-[16
+[17
 
 ]
 \openout4 = `presentation.vrb'.
@@ -1230,14 +1237,14 @@ Package pdftex.def Info: hcmut.png  used on input line 496.
 LaTeX Font Info:    Font shape `T5/cmtt/bx/n' in size <8> not available
 (Font)              Font shape `T5/cmtt/m/n' tried instead on input line 64.
 )
-Overfull \vbox (58.3779pt too high) detected at line 564
+Overfull \vbox (58.3779pt too high) detected at line 577
  []
 
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 564.
+Package pdftex.def Info: hcmut.png  used on input line 577.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
-[17
+[18
 
 ]
 \openout4 = `presentation.vrb'.
@@ -1245,77 +1252,85 @@ Package pdftex.def Info: hcmut.png  used on input line 564.
  (./presentation.vrb)
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 617.
+Package pdftex.def Info: hcmut.png  used on input line 630.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [18
+ [19
 
-] [19
+] [20
 
 ]
+<figures/qqplot_log_price_anova_groups.png, id=541, 650.43pt x 289.08pt>
+File: figures/qqplot_log_price_anova_groups.png Graphic file (type png)
+<use figures/qqplot_log_price_anova_groups.png>
+Package pdftex.def Info: figures/qqplot_log_price_anova_groups.png  used on input line 662.
+(pdftex.def)             Requested size: 169.77277pt x 75.45456pt.
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 646.
-(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [20
-
-]
-<figures/coefficient_importance.png, id=556, 722.7pt x 433.62pt>
-File: figures/coefficient_importance.png Graphic file (type png)
-<use figures/coefficient_importance.png>
-Package pdftex.def Info: figures/coefficient_importance.png  used on input line 677.
-(pdftex.def)             Requested size: 225.34357pt x 135.20155pt.
-File: hcmut.png Graphic file (type png)
-<use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 677.
+Package pdftex.def Info: hcmut.png  used on input line 662.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [21
 
- <./figures/coefficient_importance.png>]
-<figures/price_distribution_compare.png, id=590, 650.43pt x 289.08pt>
-File: figures/price_distribution_compare.png Graphic file (type png)
-<use figures/price_distribution_compare.png>
-Package pdftex.def Info: figures/price_distribution_compare.png  used on input line 704.
-(pdftex.def)             Requested size: 225.34357pt x 100.15175pt.
-<figures/diagnostic_residuals.png, id=591, 650.43pt x 289.08pt>
-File: figures/diagnostic_residuals.png Graphic file (type png)
-<use figures/diagnostic_residuals.png>
-Package pdftex.def Info: figures/diagnostic_residuals.png  used on input line 704.
-(pdftex.def)             Requested size: 195.00592pt x 86.66731pt.
+ <./figures/qqplot_log_price_anova_groups.png (PNG copy)>]
+<figures/coefficient_importance.png, id=576, 722.7pt x 433.62pt>
+File: figures/coefficient_importance.png Graphic file (type png)
+<use figures/coefficient_importance.png>
+Package pdftex.def Info: figures/coefficient_importance.png  used on input line 693.
+(pdftex.def)             Requested size: 225.34357pt x 135.20155pt.
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 704.
+Package pdftex.def Info: hcmut.png  used on input line 693.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [22
 
- <./figures/price_distribution_compare.png (PNG copy)> <./figures/diagnostic_residuals.png (PNG copy)>]
-<figures/scatter_actual_vs_predicted.png, id=612, 578.16pt x 481.8pt>
-File: figures/scatter_actual_vs_predicted.png Graphic file (type png)
-<use figures/scatter_actual_vs_predicted.png>
-Package pdftex.def Info: figures/scatter_actual_vs_predicted.png  used on input line 741.
-(pdftex.def)             Requested size: 199.34035pt x 166.1109pt.
+ <./figures/coefficient_importance.png>]
+<figures/price_distribution_compare.png, id=610, 650.43pt x 289.08pt>
+File: figures/price_distribution_compare.png Graphic file (type png)
+<use figures/price_distribution_compare.png>
+Package pdftex.def Info: figures/price_distribution_compare.png  used on input line 720.
+(pdftex.def)             Requested size: 225.34357pt x 100.15175pt.
+<figures/diagnostic_residuals.png, id=611, 650.43pt x 289.08pt>
+File: figures/diagnostic_residuals.png Graphic file (type png)
+<use figures/diagnostic_residuals.png>
+Package pdftex.def Info: figures/diagnostic_residuals.png  used on input line 720.
+(pdftex.def)             Requested size: 195.00592pt x 86.66731pt.
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 741.
+Package pdftex.def Info: hcmut.png  used on input line 720.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
  [23
 
- <./figures/scatter_actual_vs_predicted.png (PNG copy)>] [24
+ <./figures/price_distribution_compare.png (PNG copy)> <./figures/diagnostic_residuals.png (PNG copy)>]
+<figures/scatter_actual_vs_predicted.png, id=632, 578.16pt x 481.8pt>
+File: figures/scatter_actual_vs_predicted.png Graphic file (type png)
+<use figures/scatter_actual_vs_predicted.png>
+Package pdftex.def Info: figures/scatter_actual_vs_predicted.png  used on input line 757.
+(pdftex.def)             Requested size: 199.34035pt x 166.1109pt.
+File: hcmut.png Graphic file (type png)
+<use hcmut.png>
+Package pdftex.def Info: hcmut.png  used on input line 757.
+(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
+ [24
+
+ <./figures/scatter_actual_vs_predicted.png (PNG copy)>] [25
+
+]
+Overfull \vbox (1.15126pt too high) detected at line 799
+ []
+
+File: hcmut.png Graphic file (type png)
+<use hcmut.png>
+Package pdftex.def Info: hcmut.png  used on input line 799.
+(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
+[26
 
 ]
 File: hcmut.png Graphic file (type png)
 <use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 783.
+Package pdftex.def Info: hcmut.png  used on input line 823.
 (pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [25
+ [27
 
-]
-File: hcmut.png Graphic file (type png)
-<use hcmut.png>
-Package pdftex.def Info: hcmut.png  used on input line 807.
-(pdftex.def)             Requested size: 20.50424pt x 18.49411pt.
- [26
-
-] [27
+] [28
 
 ]
 \tf@nav=\write6
@@ -1336,18 +1351,18 @@ Package rerunfilecheck Info: File `presentation.out' has not changed.
 (rerunfilecheck)             Checksum: 98B4B590AE372376C65541EF71EC443D;754.
  ) 
 Here is how much of TeX's memory you used:
- 31237 strings out of 467524
- 606283 string characters out of 5423188
- 1364002 words of memory out of 5000000
- 59466 multiletter control sequences out of 15000+600000
+ 31253 strings out of 467524
+ 606894 string characters out of 5423188
+ 1365002 words of memory out of 5000000
+ 59480 multiletter control sequences out of 15000+600000
  660398 words of font info for 114 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  128i,19n,123p,439b,2178s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi12.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnitt10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnss10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnss12.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnss8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnss9.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vnssbx10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vntt10.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vntt8.pfb><e:/texlive/2026/texmf-dist/fonts/type1/vntex/vnr/vntt9.pfb>
-Output written on presentation.pdf (27 pages, 783636 bytes).
+Output written on presentation.pdf (28 pages, 881823 bytes).
 PDF statistics:
- 879 PDF objects out of 1000 (max. 8388607)
- 508 compressed objects within 6 object streams
- 60 named destinations out of 1000 (max. 500000)
- 1518 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 900 PDF objects out of 1000 (max. 8388607)
+ 520 compressed objects within 6 object streams
+ 62 named destinations out of 1000 (max. 500000)
+ 1559 words of extra memory for PDF output out of 10000 (max. 10000000)
 
